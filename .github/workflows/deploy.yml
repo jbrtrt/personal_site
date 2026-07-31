@@ -34,7 +34,15 @@ jobs:
       # rather than shipping a broken bundle.
       - run: npm run build
 
+      # enablement:true forces build_type: workflow via the Pages API.
+      # Without it this step accepts whatever the repo already has — and if
+      # that is "Deploy from a branch", GitHub's legacy pages builder also
+      # runs on every push, publishing the raw repo root (whose index.html
+      # points at /src/main.ts) over the top of this job's dist/. Asserting
+      # the mode here means the deploy cannot silently regress.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
