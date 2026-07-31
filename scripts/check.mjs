@@ -16,15 +16,25 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
 
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
-await page.waitForTimeout(6000);
+
+/* Wait for a rate rather than sleeping at it. The sinus node needs two beats
+   before it can report one, and on a loaded machine boot alone can eat a
+   fixed six-second wait — which reports "-- bpm" and looks like a regression
+   when it is only a slow start. */
+await page
+  .waitForFunction(() => /\d/.test(document.querySelector('[data-rate]')?.textContent ?? ''), null, { timeout: 30000 })
+  .catch(() => {});
+await page.waitForTimeout(2500);
 
 const boot = await page.evaluate(() => ({
   tier: document.documentElement.dataset.tier,
   ground: document.documentElement.dataset.ground,
   rate: document.querySelector('[data-rate]')?.textContent,
   pubs: document.querySelectorAll('.pub').length,
-  creds: document.querySelectorAll('.creds li').length,
-  beats: document.querySelectorAll('.beat').length,
+  bio: document.querySelectorAll('.bio__p').length,
+  beliefs: document.querySelectorAll('.mod__belief').length,
+  pubsShown: document.querySelectorAll('[data-pubs] .pub').length,
+  pubsRest: document.querySelectorAll('[data-pubs-rest] .pub').length,
   claims: document.querySelectorAll('.mod__claim').length,
   portrait: !document.querySelector('.plate__frame')?.hasAttribute('data-empty'),
   probe: window.__bg?.probe?.(),

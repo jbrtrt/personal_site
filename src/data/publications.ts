@@ -12,6 +12,14 @@ export interface Pub {
   cite: string;
   venue: string;
   kind: 'journal' | 'podium' | 'abstract' | 'poster' | 'patent' | 'lecture';
+  /**
+   * Shown before the reader asks for the rest. The page is an argument now
+   * rather than a bibliography, so it leads with first-author work, the two
+   * peer-reviewed journals and the patents, and keeps everything else one
+   * click away. Nothing is deleted and nothing is hidden from a crawler —
+   * the full list is in the DOM either way.
+   */
+  selected?: true;
 }
 
 export const publications: Pub[] = [
@@ -20,6 +28,7 @@ export const publications: Pub[] = [
     cite: '**Greenfield B**, Srirangapatanam S, Stoller M, Mena J, Webb S, Ho SP. Microenvironment-specific zinc enrichment and structural heterogeneity in human kidney stones.',
     venue: 'AUA New England',
     kind: 'podium',
+    selected: true,
   },
   {
     year: '2026',
@@ -32,12 +41,14 @@ export const publications: Pub[] = [
     cite: 'Srirangapatanam S, **Greenfield B**, Mena J, Farzannekou D, Kang M, Ustriyana P, Webb S, Ho SP. Pathological biomineral polymorphs in the human kidney are environment-specific.',
     venue: 'Acta Biomaterialia',
     kind: 'journal',
+    selected: true,
   },
   {
     year: '2026',
     cite: '**Greenfield B**, Srirangapatanam S, Stoller M, Mena J, Webb S, Ho SP. Physicochemical remodeling of human renal papilla in calcium oxalate stone pathogenesis.',
     venue: 'AUA National',
     kind: 'podium',
+    selected: true,
   },
   {
     year: '2026',
@@ -68,6 +79,7 @@ export const publications: Pub[] = [
     cite: 'Abduljaleel A, Davidowitz C, Dong G, Ghildiyal A, **Greenfield B**, Hossain M, Mistry A, Sousa M, Vallecha S, Yung Z, Zhu C, Siegel M. The impact of historical and modern-day redlining on firearm violence: a decade-long multilevel study of 38 states.',
     venue: 'J Racial Ethn Health Disparities',
     kind: 'journal',
+    selected: true,
   },
   {
     year: '2025',
@@ -92,12 +104,14 @@ export const publications: Pub[] = [
     cite: '**Greenfield JB**. Systems and methods for imaging and analyzing a microscopic sample.',
     venue: 'US20230204935A1',
     kind: 'patent',
+    selected: true,
   },
   {
     year: '2023',
     cite: '**Greenfield JB**. System and method for impact detection and analysis.',
     venue: 'US20230222795A1',
     kind: 'patent',
+    selected: true,
   },
   {
     year: '2020',
@@ -110,6 +124,7 @@ export const publications: Pub[] = [
     cite: '**Greenfield B**, Leonard EF. Interdialytic blood volume control for ambulatory extracorporeal therapy.',
     venue: 'ASAIO 2020',
     kind: 'poster',
+    selected: true,
   },
   {
     year: '2020',

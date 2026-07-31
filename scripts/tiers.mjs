@@ -29,7 +29,7 @@ async function tier(name, launchArgs, contextOpts) {
     pubs: document.querySelectorAll('.pub').length,
     heroVisible: getComputedStyle(document.querySelector('.hero__lede')).opacity,
     nameClip: getComputedStyle(document.querySelector('.hero__given')).clipPath,
-    beatsActive: document.querySelectorAll('.beat[data-active]').length,
+    bioActive: document.querySelectorAll('.bio__p[data-active]').length,
     figuresDrawn: [...document.querySelectorAll('canvas[data-figure]')]
       .filter((c) => c.width > 0 && c.getContext('2d')
         .getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 8)).length,

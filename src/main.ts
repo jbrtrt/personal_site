@@ -70,7 +70,7 @@ if (cap.tier === 'fallback' || !fieldCanvas || !traceCanvas) {
   root.dataset.ground = 'paper';
   gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
   gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
-  document.querySelectorAll('.beat').forEach((b) => b.setAttribute('data-active', '1'));
+  document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
   document.querySelector('[data-egg]')?.removeAttribute('hidden');
 } else {
   boot(fieldCanvas, traceCanvas);
@@ -102,7 +102,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     if (egg?.hasAttribute('hidden')) {
       egg.removeAttribute('hidden');
       gsap.from(egg, { opacity: 0, y: 12, duration: 0.7, ease: 'power3.out' });
-      if (cue) cue.textContent = 'Re-entry induced. The wave is now chasing its own tail.';
+      if (cue) cue.textContent = 'The wave has found its own tail. It will keep going now.';
     }
   });
 
@@ -174,7 +174,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
 
     gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
     gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
-    document.querySelectorAll('.beat').forEach((b) => b.setAttribute('data-active', '1'));
+    document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
 
     rhythm.clear();
     for (let i = 12; i >= 0; i--) rhythm.schedule('sinus', now - i * 1000);
@@ -231,7 +231,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     },
   });
 
-  // Back to baseline on the way out.
+  // Back to the paper ground on the way out.
   ScrollTrigger.create({
     trigger: '[data-scene="contact"]',
     start: 'top 60%',
@@ -294,14 +294,14 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     });
   });
 
-  // Biography beats light as they arrive.
-  gsap.utils.toArray<HTMLElement>('.beat').forEach((beat) => {
+  // Biography paragraphs light as they arrive.
+  gsap.utils.toArray<HTMLElement>('.bio__p').forEach((para) => {
     ScrollTrigger.create({
-      trigger: beat,
-      start: 'top 78%',
+      trigger: para,
+      start: 'top 82%',
       end: 'bottom 30%',
-      onEnter: () => beat.setAttribute('data-active', '1'),
-      onEnterBack: () => beat.setAttribute('data-active', '1'),
+      onEnter: () => para.setAttribute('data-active', '1'),
+      onEnterBack: () => para.setAttribute('data-active', '1'),
     });
   });
 

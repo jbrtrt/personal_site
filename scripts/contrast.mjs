@@ -111,17 +111,17 @@ const UI = 3.0;
 const PAIRS = [
   // ── chart paper ────────────────────────────────────────────────────────
   ['paper', '--fg',       '--bg', BODY, 'body copy, headings'],
-  ['paper', '--fg-soft',  '--bg', BODY, '.mod__body · .beat p · .hero__lede · .creds'],
+  ['paper', '--fg-soft',  '--bg', BODY, '.mod__body · .bio__p · .hero__lede · .gap__turn'],
   ['paper', '--fg-faint', '--bg', BODY, '.chrome · .eyebrow · .fig__cap · .mod__caveat · footer'],
-  ['paper', '--accent',   '--bg', BODY, '.mod__id · .hero__role · .pub__v · .creds__k'],
+  ['paper', '--accent',   '--bg', BODY, '.mod__id · .hero__role · .pub__v · .pubs__toggle'],
   ['paper', '--violet',   '--bg', BODY, '.pub[data-kind=patent] .pub__v'],
   ['paper', '--signal',   '--bg', UI,   ':focus-visible ring · .gap__lock · .egg border · beat dot'],
 
   // ── circuit board ──────────────────────────────────────────────────────
   ['board', '--fg',       '--bg', BODY, 'body copy, headings'],
-  ['board', '--fg-soft',  '--bg', BODY, '.mod__body · .beat p · .creds'],
+  ['board', '--fg-soft',  '--bg', BODY, '.mod__body · .bio__p · .mod__belief'],
   ['board', '--fg-faint', '--bg', BODY, '.chrome · .eyebrow · .fig__cap · .mod__caveat · footer'],
-  ['board', '--accent',   '--bg', BODY, '.mod__id · .register__h · .pub__v · .creds__k'],
+  ['board', '--accent',   '--bg', BODY, '.mod__id · .register__h · .pub__v · .pubs__toggle'],
   ['board', '--violet',   '--bg', BODY, '.pub[data-kind=patent] .pub__v'],
   ['board', '--signal',   '--bg', UI,   ':focus-visible ring · .gap__lock · .egg border · beat dot'],
 

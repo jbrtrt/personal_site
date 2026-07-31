@@ -378,6 +378,22 @@ the address is assembled at runtime and must never appear in the bundle.
 | Repo visual assets | Permitted, but art direction must be original |
 | Hosting | Public repo, Pages via GitHub Actions |
 
+### ⚠️ Two of these were overridden on 2026-07-31
+
+Recorded here so a later session does not read them as drift and "restore"
+them. Both were raised as conflicts *before* the work, and confirmed:
+
+| Was | Now | Why |
+|---|---|---|
+| Do not rewrite the copy wholesale | The page is restructured around stated beliefs | Asked for directly: "make this website much less like a CV and more about me / thesis", clarified as "personal beliefs", "throughout the whole website" |
+| Research stays at all 19 entries; curating to eight is the rewrite he ruled out | 7 selected shown, 12 behind a disclosure | Chosen explicitly after the conflict was put in writing |
+
+**Nothing was deleted.** All 19 publications are still rendered into the DOM
+and reachable in one click, so the full record remains present and indexable.
+The credentials strip, the leadership ledger and most of the honors line were
+removed — every fact the credentials strip carried is now in the biography
+prose, so no fact was lost with it.
+
 ---
 
 ## 11 · Open — what the next session should pick up

@@ -51,14 +51,8 @@ function traceFor(p: Pub): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-export function renderPublications(root: ParentNode = document) {
-  const list = root.querySelector<HTMLOListElement>('[data-pubs]');
-  if (!list) return;
-
-  const frag = document.createDocumentFragment();
-
-  for (const p of publications) {
-    const li = document.createElement('li');
+function row(p: Pub): HTMLLIElement {
+  const li = document.createElement('li');
     li.className = 'pub';
     li.dataset.kind = p.kind;
     li.tabIndex = 0;
@@ -78,11 +72,50 @@ export function renderPublications(root: ParentNode = document) {
     v.className = 'pub__v';
     v.textContent = p.venue;
 
-    li.append(yr, t, v);
-    frag.append(li);
-  }
+  li.append(yr, t, v);
+  return li;
+}
 
+/**
+ * Selected work first, the remainder behind a disclosure.
+ *
+ * Every entry is still rendered into the DOM, so the full record is present
+ * for anyone — or anything — reading the page; the disclosure only decides
+ * what competes for the scroll. A bibliography that runs longer than the
+ * argument turns the page back into a CV, which is the thing this is not.
+ */
+export function renderPublications(root: ParentNode = document) {
+  const list = root.querySelector<HTMLOListElement>('[data-pubs]');
+  if (!list) return;
+
+  const selected = publications.filter((p) => p.selected);
+  const rest = publications.filter((p) => !p.selected);
+
+  const frag = document.createDocumentFragment();
+  for (const p of selected) frag.append(row(p));
   list.replaceChildren(frag);
+
+  const more = root.querySelector<HTMLElement>('[data-pubs-rest]');
+  const toggle = root.querySelector<HTMLButtonElement>('[data-pubs-toggle]');
+  if (!more || !toggle || !rest.length) return;
+
+  const restFrag = document.createDocumentFragment();
+  for (const p of rest) restFrag.append(row(p));
+  more.replaceChildren(restFrag);
+
+  const label = (open: boolean) =>
+    open ? 'Hide the rest' : `The full record — ${publications.length} entries`;
+
+  toggle.textContent = label(false);
+  toggle.setAttribute('aria-expanded', 'false');
+  more.hidden = true;
+
+  toggle.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!open));
+    toggle.textContent = label(!open);
+    more.hidden = open;
+  });
 }
 
 export function stampYear(root: ParentNode = document) {
