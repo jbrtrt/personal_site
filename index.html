@@ -146,7 +146,7 @@
 <!-- ══════════════ 3 · BUILDS ══════════════ -->
 <section class="sec sec--builds" data-scene="builds" aria-labelledby="builds-h">
   <div class="wrap">
-    <p class="eyebrow">03 &mdash; Board</p>
+    <p class="eyebrow">03 &mdash; Objects</p>
     <h2 id="builds-h" class="h-display">Everything here started as a problem I had.</h2>
   </div>
 
@@ -155,47 +155,52 @@
     <li class="mod" data-mod="vivesense">
       <p class="mod__id chrome">M1 &middot; ViveSense, Inc.</p>
       <p class="mod__belief">Build from a problem you actually had.</p>
-      <p class="mod__claim">Patented at-home test &middot; NSF SBIR Phase&nbsp;I &middot; NSF I-Corps &middot; 40+ hours of interviews</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="vivesense" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 1 &middot; Reader and slide</b>Concept form. The consumable is what a person actually handles &mdash; the reader exists to be unremarkable next to it.</figcaption>
+      </figure>
       <h3 class="mod__name">Fertility screening that never leaves the house</h3>
       <p class="mod__body">Male-factor causes roughly half of infertility, and the
         diagnostic path starts with a clinic visit most men never book. ViveSense is
         core hardware for an at-home semen analysis &mdash; optical, patent-backed,
         built to be read at a kitchen table rather than a bench.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="vivesense" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 1</b> &mdash; Bland&ndash;Altman
-          acceptance band against laboratory semen analysis: bias on the centre
-          line, limits of agreement at &plusmn;1.96&nbsp;SD. This is the criterion
-          the device has to meet, not a result it has posted.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">Hardware &middot; optics &middot; US20230204935A1 &middot; NSF SBIR I &middot; I-Corps</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>In development</dd>
+        <dt class="chrome">Form</dt><dd>Optical reader &middot; single-use slide</dd>
+        <dt class="chrome">Patent</dt><dd>US20230204935A1</dd>
+        <dt class="chrome">Backing</dt><dd>NSF SBIR Phase&nbsp;I &middot; NSF I-Corps</dd>
+        <dt class="chrome">Grounding</dt><dd>40+ hours of user interviews</dd>
+      </dl>
       <p class="mod__caveat">In development. Screening and monitoring &mdash; not a diagnosis.</p>
     </li>
 
     <li class="mod" data-mod="nephra">
       <p class="mod__id chrome">M2 &middot; NEPHRA ONE</p>
       <p class="mod__belief">The hundred and sixty-eight hour week is the problem, not the twelve.</p>
-      <p class="mod__claim">Direct descendant of the ambulatory hemofiltration work &middot; investigational</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="nephra" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 2 &middot; Implant, continuous</b>Concept form. The band is the filtration stage; the ports are the whole reason it can run continuously rather than on a schedule.</figcaption>
+      </figure>
       <h3 class="mod__name">The dialysis chair, deleted</h3>
       <p class="mod__body">A concept implantable total artificial kidney: continuous
         filtration in place of three sessions a week and the hundred and sixty-eight
         hour week that dialysis quietly takes from people. It is the direct descendant
         of the ambulatory hemofiltration work I did in the Artificial Organs Lab.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="nephra" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 2</b> &mdash; Single-pool urea
-          kinetics over one week, integrated rather than drawn: the same weekly
-          clearance delivered as three four-hour sessions and as a continuous
-          17.9&nbsp;mL/min. Identical clearance, and the peaks are the part
-          patients actually feel.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">Implantable &middot; hemofiltration &middot; ASAIO 2020 &middot; investigational</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>Concept &middot; investigational</dd>
+        <dt class="chrome">Form</dt><dd>Implantable continuous hemofilter</dd>
+        <dt class="chrome">Lineage</dt><dd>Ambulatory hemofiltration, Artificial Organs Lab</dd>
+        <dt class="chrome">Published</dt><dd>ASAIO 2020</dd>
+      </dl>
     </li>
 
     <li class="mod" data-mod="stoneidx">
       <p class="mod__id chrome">M3 &middot; stoneidx</p>
       <p class="mod__belief">A modest number you can defend beats a good one you cannot.</p>
-      <p class="mod__claim">Charlson and Elixhauser are miscalibrated where stones are rare &middot; 4.1M encounters &middot; pooled AUC 0.713 across 19 cohorts</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="stoneidx" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 3 &middot; Specimen</b>Not a device &mdash; a subject. Three stones on a tray, which is the difference between a rock and a finding.</figcaption>
+      </figure>
       <h3 class="mod__name">A comorbidity index for kidney stones</h3>
       <p class="mod__body">Five independent arms fit across national discharge data,
         then harmonised into one integer point table. Firth penalised regression where
@@ -203,42 +208,43 @@
         chosen by parallel analysis rather than an eigenvalue rule of thumb. The unit
         of analysis is the encounter, never the person &mdash; enforced by a lint test
         that fails the build if a source file says otherwise.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="stoneidx" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 3</b> &mdash; Pooled discrimination
-          across 19 cohorts, against chance at 0.50. The per-cohort rows are
-          deliberately absent: the pooled estimate is what has been computed, and
-          a forest plot of invented cohorts would defeat the point of the
-          exercise.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">HCUP NIS / NEDS / NASS / NRD &middot; Python &middot; cluster-robust</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>Five arms fit, harmonised to one point table</dd>
+        <dt class="chrome">Data</dt><dd>HCUP NIS / NEDS / NASS / NRD &middot; 4.1M encounters</dd>
+        <dt class="chrome">Result</dt><dd>Pooled AUC 0.713 across 19 cohorts</dd>
+        <dt class="chrome">Method</dt><dd>Firth penalised regression &middot; cluster-robust &middot; Python</dd>
+      </dl>
       <p class="mod__caveat">Modest AUC is the expected result. Nothing here is tuned toward a number.</p>
     </li>
 
     <li class="mod" data-mod="ocula">
       <p class="mod__id chrome">M4 &middot; Ocula Health, Inc.</p>
       <p class="mod__belief">Consent belongs in the architecture, not in a settings page.</p>
-      <p class="mod__claim">Summaries travel, raw life stays home &mdash; consent-gated by architecture, not by a setting</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="ocula" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 4 &middot; Bedside hub</b>Concept form. One lens, one ring. The ring is the only part of the object that ever leaves the house.</figcaption>
+      </figure>
       <h3 class="mod__name">The other 8,758 hours</h3>
       <p class="mod__body">Twenty minutes in March, then a hundred and ninety-two days
         of dinners, doses and decisions made alone. Ocula is a coach that lives in
         those hours and sends the care team a short summary afterwards. Who sees what
         is not a settings page three menus deep &mdash; it is the architecture.
         Summaries travel. Raw life stays home.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="ocula" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 4</b> &mdash; One year, to scale.
-          8,760 hours; roughly two of them observed by the care team. The bar is
-          the argument &mdash; everything the clinic decides is inferred from the
-          sliver on the left.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">Longitudinal care &middot; on-device capture &middot; consent-gated egress</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>In development</dd>
+        <dt class="chrome">Form</dt><dd>Bedside hub &middot; on-device capture</dd>
+        <dt class="chrome">Rule</dt><dd>Summaries travel, raw life stays home</dd>
+        <dt class="chrome">Egress</dt><dd>Consent-gated by architecture</dd>
+      </dl>
     </li>
 
     <li class="mod" data-mod="flopcheck">
       <p class="mod__id chrome">M5 &middot; FlopCheck</p>
       <p class="mod__belief">The limitation is the interesting part.</p>
-      <p class="mod__claim">Extends US12511900B2 &middot; the stress test has monocular pose inventing metres of phantom depth, triangulation fixing it to millimetres</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="flopcheck" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 5 &middot; Match ball, contact marked</b>The marked point is the input. Everything the method does afterwards is decide whether what followed could have come from it.</figcaption>
+      </figure>
       <h3 class="mod__name">Did the contact actually do that?</h3>
       <p class="mod__body">Three-dimensional pose off broadcast video, then an
         impulse-momentum check against the motion that followed: was the reaction
@@ -246,20 +252,21 @@
         impact-detection patent. The honest part is the limitation &mdash; monocular
         depth, not the pose model, is the accuracy ceiling, and the usual benchmarks
         are root-relative, so they hide exactly the quantity the physics consumes.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="flopcheck" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 5</b> &mdash; The method: pose,
-          the impulse the contact could have delivered, and the band of
-          displacements consistent with it. A response landing outside the band
-          did not come from the contact.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">Inverse dynamics &middot; Monte Carlo envelope &middot; US12511900B2</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>Research build</dd>
+        <dt class="chrome">Method</dt><dd>3D pose off broadcast video &middot; inverse dynamics &middot; Monte Carlo envelope</dd>
+        <dt class="chrome">Patent</dt><dd>Extends US12511900B2</dd>
+        <dt class="chrome">Ceiling</dt><dd>Monocular depth &mdash; not the pose model</dd>
+      </dl>
     </li>
 
     <li class="mod" data-mod="lantern">
       <p class="mod__id chrome">M6 &middot; Lantern</p>
       <p class="mod__belief">When it matters most, the right move is to say less.</p>
-      <p class="mod__claim">Deterministic safety layer on every utterance, independent of the model &middot; 374 tests &middot; the log names the rung that is not built yet</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="lantern" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 6 &middot; Lantern</b>The handle is the argument. Whatever the thing says, a person is one reach away from it.</figcaption>
+      </figure>
       <h3 class="mod__name">A steady presence for the hours between visits</h3>
       <p class="mod__body">A bedside companion for people living with serious illness,
         for the long quiet stretches when no one is in the room. The safety layer is
@@ -267,21 +274,21 @@
         memory is never voiced as fact; prognosis, diagnosis and dosing return refusals
         rather than answers; and a human is one touch away from every screen. It is
         the only thing I have built where the correct behaviour is usually to say less.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="lantern" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 6</b> &mdash; The gate runs on every
-          utterance, not on the ones a model thought were worth flagging. The top
-          rung is drawn open because it is not built &mdash; clinical escalation
-          is named in the log and unimplemented, and saying so is cheaper than
-          finding out later.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">Palliative &middot; deterministic safety layer &middot; provenance-tagged memory</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>In development &middot; personal deployment</dd>
+        <dt class="chrome">Form</dt><dd>Bedside companion</dd>
+        <dt class="chrome">Safety</dt><dd>Deterministic layer on every utterance, independent of the model</dd>
+        <dt class="chrome">Grounding</dt><dd>374 tests &middot; unbuilt rungs named in the log</dd>
+      </dl>
     </li>
 
     <li class="mod" data-mod="notes2anki">
       <p class="mod__id chrome">M7 &middot; notes2anki</p>
       <p class="mod__belief">Nothing ships because it reads better. It ships because it won.</p>
-      <p class="mod__claim">Reads formatting as meaning &middot; graded on comprehension and Bloom level &middot; 196 offline tests &middot; A/B across two judges, n&nbsp;=&nbsp;17</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="notes2anki" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b class="chrome">Plate 7 &middot; Stack, adopted and discarded</b>Most rewrites are the second one. A stack on its own would only show the survivors.</figcaption>
+      </figure>
       <h3 class="mod__name">Flashcards that grade themselves, then argue back</h3>
       <p class="mod__body">Medical notes carry meaning in their formatting &mdash;
         highlight colour, indentation, an arrow, an odd capitalisation. The pipeline
@@ -289,14 +296,12 @@
         them on whether they actually test understanding. Weak cards get one rewrite
         and are otherwise dropped. The prompts that produce them are revised and
         adopted only after a blind A/B gate says the new version is better.</p>
-      <figure class="fig">
-        <canvas class="fig__plot" data-figure="notes2anki" aria-hidden="true"></canvas>
-        <figcaption class="fig__cap"><b>Fig. 7</b> &mdash; The adoption rule. A
-          rewritten prompt ships only if it wins under both judges independently,
-          which is the shaded corner; anything else is discarded no matter how
-          much better it reads.</figcaption>
-      </figure>
-      <p class="mod__meta chrome">Python stdlib &middot; two-tier audit &middot; blind A/B adoption gate</p>
+      <dl class="spec">
+        <dt class="chrome">Status</dt><dd>In use</dd>
+        <dt class="chrome">Input</dt><dd>Formatting read as meaning</dd>
+        <dt class="chrome">Gate</dt><dd>Blind A/B across two judges, n&nbsp;=&nbsp;17</dd>
+        <dt class="chrome">Grounding</dt><dd>196 offline tests</dd>
+      </dl>
     </li>
 
   </ol>

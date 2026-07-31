@@ -209,10 +209,14 @@
   color: var(--fg-faint);
 }
 
-/* ── build figures — the journal-plate register ─────────────── */
+/* ── the plates ─────────────────────────────────────────────────
+   The object leads the module. This is a portfolio of things that were
+   designed, so the thing arrives before the writing about it — the plate sits
+   directly under the belief and runs the full width of the column. */
 .fig {
-  margin-top: var(--s4);
-  max-width: 30rem;
+  margin-top: var(--s3);
+  margin-bottom: var(--s4);
+  max-width: 40rem;
 }
 .mod:nth-child(even) .fig { margin-left: auto; }
 .fig__plot {
@@ -230,9 +234,52 @@
   text-align: left;
   text-wrap: pretty;
 }
-.fig__cap b { color: var(--fg-soft); font-weight: 600; }
+/* Designation on its own line, the way a plate caption is set. */
+.fig__cap b {
+  display: block;
+  margin-bottom: 0.25em;
+  color: var(--fg-soft);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.mod:nth-child(even) .fig__cap { text-align: right; }
 @media (max-width: 880px) {
   .mod:nth-child(even) .fig { margin-left: 0; }
+  .mod:nth-child(even) .fig__cap { text-align: left; }
+}
+
+/* ── spec table ─────────────────────────────────────────────────
+   What used to be a run-on credit line reading like a résumé entry. The same
+   facts set as a spec table read as a datasheet instead, which is what they
+   are — and it puts status and limitation on the same footing as the patent
+   number rather than burying them. */
+.spec {
+  display: grid;
+  grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr);
+  margin-top: var(--s3);
+  border-top: 1px solid var(--rule);
+  max-width: 38rem;
+  text-align: left;
+}
+.spec dt,
+.spec dd {
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+}
+.spec dt { color: var(--fg-faint); }
+.spec dd { color: var(--fg-soft); text-wrap: pretty; }
+/* A right-aligned table puts the labels where the values belong and leaves the
+   label column with a ragged left edge, so on mirrored modules the block moves
+   and the type inside it does not. `.mod:nth-child(even) > *` outranks a bare
+   `.spec`, so this has to match its specificity to win. */
+.mod:nth-child(even) .spec { margin-left: auto; text-align: left; }
+.mod:nth-child(even) .spec dt,
+.mod:nth-child(even) .spec dd { text-align: left; }
+@media (max-width: 560px) {
+  .spec { grid-template-columns: minmax(0, 1fr); }
+  .spec dt { padding-bottom: 0; border-bottom: 0; }
 }
 
 .register__h { display: block; margin-bottom: var(--s3); color: var(--accent); }

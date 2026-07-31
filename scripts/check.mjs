@@ -35,7 +35,8 @@ const boot = await page.evaluate(() => ({
   beliefs: document.querySelectorAll('.mod__belief').length,
   pubsShown: document.querySelectorAll('[data-pubs] .pub').length,
   pubsRest: document.querySelectorAll('[data-pubs-rest] .pub').length,
-  claims: document.querySelectorAll('.mod__claim').length,
+  specs: document.querySelectorAll('.spec').length,
+  specRows: document.querySelectorAll('.spec dd').length,
   portrait: !document.querySelector('.plate__frame')?.hasAttribute('data-empty'),
   probe: window.__bg?.probe?.(),
 }));
