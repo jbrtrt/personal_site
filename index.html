@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Benjamin Greenfield — Physician-Engineer</title>
+<meta name="description" content="Physician-engineer. Medical school at Tufts, biomedical engineering at Columbia. Building the instruments medicine hasn't built yet — fertility screening, artificial kidneys, stone risk, clinical AI." />
+<meta name="author" content="Benjamin Greenfield" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#F4EFE9" />
+
+<meta property="og:type" content="profile" />
+<meta property="og:title" content="Benjamin Greenfield — Physician-Engineer" />
+<meta property="og:description" content="Most builders never close the gap between medicine and engineering, because they've never been on the other side of the exam table." />
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23100E12'/%3E%3Cpath d='M2 17h6l2-5 3 11 3-15 3 12 2-3h9' fill='none' stroke='%23E8B04B' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- The excitable medium. Decorative: every word it carries also lives in the DOM. -->
+<canvas id="field" aria-hidden="true"></canvas>
+<canvas id="trace" aria-hidden="true"></canvas>
+
+<div id="grain" aria-hidden="true"></div>
+
+<header class="rail" aria-hidden="true">
+  <span class="rail__lead">LEAD II</span>
+  <span class="rail__cal">25 mm/s &middot; 10 mm/mV</span>
+  <span class="rail__rate" data-rate>&mdash;&mdash; bpm</span>
+</header>
+
+<main id="main">
+
+<!-- ══════════════ 0 · FLATLINE → DEPOLARIZATION ══════════════ -->
+<section class="sec sec--hero" data-scene="hero" aria-labelledby="hero-h">
+  <div class="hero__grid">
+    <p class="chrome chrome--top">
+      <span data-strike>BENJAMIN&nbsp;GREENFIELD</span>
+      <span class="chrome__dot" aria-hidden="true">&bull;</span>
+      <span>SAN&nbsp;FRANCISCO</span>
+    </p>
+
+    <h1 id="hero-h" class="hero__name">
+      <span class="hero__given">Benjamin</span>
+      <span class="hero__family">Greenfield</span>
+    </h1>
+
+    <p class="hero__role">Physician&#8209;engineer</p>
+
+    <p class="hero__lede">
+      A living membrane and an electrical circuit are the same equation.
+      I work on the side of medicine where that stops being a metaphor.
+    </p>
+
+    <p class="chrome chrome--cue" data-cue>
+      <span class="chrome__key">CLICK ANYWHERE</span> to depolarize the tissue
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════ 1 · LEAD II — the biography ══════════════ -->
+<section class="sec sec--lead" data-scene="lead" aria-labelledby="lead-h">
+  <div class="wrap">
+    <p class="eyebrow">01 &mdash; Lead II</p>
+    <h2 id="lead-h" class="h-display">A rhythm, read back.</h2>
+
+    <div class="lead__body">
+      <figure class="plate">
+        <div class="plate__frame">
+          <!-- Drop the photo at public/headshot.jpg. Relative to the page,
+               so it resolves under the Pages base path without a rebuild.
+               Absent, the frame falls back to its PLATE PENDING state. -->
+          <img class="plate__img" src="./headshot.jpg" alt="Benjamin Greenfield" width="512" height="512" data-portrait onerror="this.closest('.plate__frame').dataset.empty='1'" />
+          <canvas class="plate__map" aria-hidden="true" data-portrait-map></canvas>
+        </div>
+        <figcaption class="chrome">SPECIMEN &mdash; B.G. &middot; surface potential</figcaption>
+      </figure>
+
+      <ol class="beats" data-beats>
+        <li class="beat beat--ectopic" data-beat="ectopic">
+          <span class="beat__year">2013</span>
+          <h3 class="beat__title">The early beat</h3>
+          <p>Accepted to a US medical school at sixteen. Turned it down. An extra
+             systole fires ahead of the rhythm it belongs to &mdash; early, out of
+             sequence, and entirely real.</p>
+        </li>
+        <li class="beat" data-beat="p">
+          <span class="beat__year">2016&ndash;2020</span>
+          <h3 class="beat__title">Columbia</h3>
+          <p>B.S. Biomedical Engineering, minor in Computer Science. Best Biomedical
+             Engineering Senior Thesis. Co-founded the Systems Biology Initiative and
+             ran the only undergraduate journal club on campus.</p>
+        </li>
+        <li class="beat" data-beat="q">
+          <span class="beat__year">2017</span>
+          <h3 class="beat__title">iGEM</h3>
+          <p>One of eight students sent to the International Jamboree. We engineered
+             probiotic bacteria to invade tumour cells and deliver shRNA from the
+             inside. Silver medal, and best cancer research at Mount Sinai.</p>
+        </li>
+        <li class="beat" data-beat="r">
+          <span class="beat__year">2019&ndash;2020</span>
+          <h3 class="beat__title">Artificial Organs</h3>
+          <p>Columbia Artificial Organs Lab, under the people who built the field.
+             An ambulatory hemodialysis and filtration rig, and the blood-volume
+             control problem that decides whether dialysis can ever leave the clinic.</p>
+        </li>
+        <li class="beat" data-beat="s">
+          <span class="beat__year">2020&ndash;2024</span>
+          <h3 class="beat__title">ViveSense</h3>
+          <p>Founder and CEO. Core hardware for a patented at-home male fertility
+             test. NSF SBIR Phase&nbsp;I, the NSF I-Corps program, and forty-plus hours
+             of interviews with physicians and the men nobody asks.</p>
+        </li>
+        <li class="beat" data-beat="t">
+          <span class="beat__year">2023</span>
+          <h3 class="beat__title">Two patents</h3>
+          <p>Imaging and analysing a microscopic sample. Impact detection and
+             analysis. Both filed before twenty-three, both since granted.</p>
+        </li>
+        <li class="beat" data-beat="u">
+          <span class="beat__year">2024&ndash;</span>
+          <h3 class="beat__title">Tufts</h3>
+          <p>Doctor of Medicine, after an M.S. in Biomedical Sciences on hydrocele
+             and its treatment. Urology research, a stack of AUA podium presentations,
+             and an EMT patch that has been on since 2019.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 2 · THE GAP ══════════════ -->
+<section class="sec sec--gap" data-scene="gap" aria-labelledby="gap-h">
+  <div class="wrap wrap--narrow">
+    <p class="eyebrow">02 &mdash; Phase lock</p>
+    <blockquote class="gap__quote">
+      <p id="gap-h">The gap between what exists in healthcare and what is possible in
+      engineering is <em>massive</em>. Most builders never close it, because
+      they&rsquo;ve never been on the other side of the exam table.</p>
+      <p class="gap__turn">I went to medical school to close it myself instead of
+      guessing at it.</p>
+    </blockquote>
+    <div class="gap__leads" aria-hidden="true">
+      <span class="gap__lead" data-lead="med">MEDICINE</span>
+      <span class="gap__lock" data-lock>OUT OF PHASE</span>
+      <span class="gap__lead" data-lead="eng">ENGINEERING</span>
+    </div>
+    <p class="gap__foot">Everything below came out of a problem I ran into personally,
+      not a market map.</p>
+  </div>
+</section>
+
+<!-- ══════════════ 3 · BUILDS ══════════════ -->
+<section class="sec sec--builds" data-scene="builds" aria-labelledby="builds-h">
+  <div class="wrap">
+    <p class="eyebrow">03 &mdash; Board</p>
+    <h2 id="builds-h" class="h-display">Seven modules on one board.</h2>
+  </div>
+
+  <ol class="mods" data-mods>
+
+    <li class="mod" data-mod="vivesense">
+      <p class="mod__id chrome">M1 &middot; ViveSense, Inc.</p>
+      <h3 class="mod__name">Fertility screening that never leaves the house</h3>
+      <p class="mod__body">Male-factor causes roughly half of infertility, and the
+        diagnostic path starts with a clinic visit most men never book. ViveSense is
+        core hardware for an at-home semen analysis &mdash; optical, patent-backed,
+        built to be read at a kitchen table rather than a bench.</p>
+      <p class="mod__meta chrome">Hardware &middot; optics &middot; US20230204935A1 &middot; NSF SBIR I &middot; I-Corps</p>
+      <p class="mod__claim">In development. Screening and monitoring &mdash; not a diagnosis.</p>
+    </li>
+
+    <li class="mod" data-mod="nephra">
+      <p class="mod__id chrome">M2 &middot; NEPHRA ONE</p>
+      <h3 class="mod__name">The dialysis chair, deleted</h3>
+      <p class="mod__body">A concept implantable total artificial kidney: continuous
+        filtration in place of three sessions a week and the hundred and sixty-eight
+        hour week that dialysis quietly takes from people. It is the direct descendant
+        of the ambulatory hemofiltration work I did in the Artificial Organs Lab.</p>
+      <p class="mod__meta chrome">Implantable &middot; hemofiltration &middot; ASAIO 2020 &middot; investigational</p>
+    </li>
+
+    <li class="mod" data-mod="stoneidx">
+      <p class="mod__id chrome">M3 &middot; stoneidx</p>
+      <h3 class="mod__name">A comorbidity index for kidney stones</h3>
+      <p class="mod__body">Five independent arms fit across national discharge data,
+        then harmonised into one integer point table. Firth penalised regression where
+        the data separates, tetrachoric correlation written from scratch, factor count
+        chosen by parallel analysis rather than an eigenvalue rule of thumb. The unit
+        of analysis is the encounter, never the person &mdash; enforced by a lint test
+        that fails the build if a source file says otherwise.</p>
+      <p class="mod__meta chrome">HCUP NIS / NEDS / NASS / NRD &middot; Python &middot; cluster-robust</p>
+      <p class="mod__claim">Modest AUC is the expected result. Nothing here is tuned toward a number.</p>
+    </li>
+
+    <li class="mod" data-mod="ocula">
+      <p class="mod__id chrome">M4 &middot; Ocula Health, Inc.</p>
+      <h3 class="mod__name">The other 8,758 hours</h3>
+      <p class="mod__body">Twenty minutes in March, then a hundred and ninety-two days
+        of dinners, doses and decisions made alone. Ocula is a coach that lives in
+        those hours and sends the care team a short summary afterwards. Who sees what
+        is not a settings page three menus deep &mdash; it is the architecture.
+        Summaries travel. Raw life stays home.</p>
+      <p class="mod__meta chrome">Longitudinal care &middot; on-device capture &middot; consent-gated egress</p>
+    </li>
+
+    <li class="mod" data-mod="flopcheck">
+      <p class="mod__id chrome">M5 &middot; FlopCheck</p>
+      <h3 class="mod__name">Did the contact actually do that?</h3>
+      <p class="mod__body">Three-dimensional pose off broadcast video, then an
+        impulse-momentum check against the motion that followed: was the reaction
+        consistent with the contact, or embellished? Built out of my own
+        impact-detection patent. The honest part is the limitation &mdash; monocular
+        depth, not the pose model, is the accuracy ceiling, and the usual benchmarks
+        are root-relative, so they hide exactly the quantity the physics consumes.</p>
+      <p class="mod__meta chrome">Inverse dynamics &middot; Monte Carlo envelope &middot; US12511900B2</p>
+    </li>
+
+    <li class="mod" data-mod="lantern">
+      <p class="mod__id chrome">M6 &middot; Lantern</p>
+      <h3 class="mod__name">A steady presence for the hours between visits</h3>
+      <p class="mod__body">A bedside companion for people living with serious illness,
+        for the long quiet stretches when no one is in the room. The safety layer is
+        deterministic and runs on every utterance independently of the model; inferred
+        memory is never voiced as fact; prognosis, diagnosis and dosing return refusals
+        rather than answers; and a human is one touch away from every screen. It is
+        the only thing I have built where the correct behaviour is usually to say less.</p>
+      <p class="mod__meta chrome">Palliative &middot; deterministic safety layer &middot; provenance-tagged memory</p>
+    </li>
+
+    <li class="mod" data-mod="notes2anki">
+      <p class="mod__id chrome">M7 &middot; notes2anki</p>
+      <h3 class="mod__name">Flashcards that grade themselves, then argue back</h3>
+      <p class="mod__body">Medical notes carry meaning in their formatting &mdash;
+        highlight colour, indentation, an arrow, an odd capitalisation. The pipeline
+        reads that structure, writes cards against a real study standard, then judges
+        them on whether they actually test understanding. Weak cards get one rewrite
+        and are otherwise dropped. The prompts that produce them are revised and
+        adopted only after a blind A/B gate says the new version is better.</p>
+      <p class="mod__meta chrome">Python stdlib &middot; two-tier audit &middot; blind A/B adoption gate</p>
+    </li>
+
+  </ol>
+
+  <div class="wrap">
+    <h3 class="register__h chrome">ALSO ON THE BENCH</h3>
+    <ul class="register" data-register>
+      <li><span>Patent Strategy OS</span><em>claim-to-design graph; evidence required for every coverage call, legal conclusions refused by construction</em></li>
+      <li><span>ActiveDoc</span><em>local-first active-reading workspace; every AI feature degrades to a deterministic offline path</em></li>
+      <li><span>EchoBack</span><em>on-device meeting assistant; bot-free capture, speaker separation, answers that cite or refuse</em></li>
+      <li><span>personal-os</span><em>knowledge OS with zero-model retrieval; markdown canonical, the index answers before any file opens</em></li>
+      <li><span>JAW</span><em>chewing gum without the plastic, and a site that lets you stretch it</em></li>
+      <li><span>SONO</span><em>40&nbsp;kHz ultrasonic cold brew &mdash; eighteen hours of steeping in one hundred and eighty seconds</em></li>
+      <li><span>mac2mac</span><em>metadata-preserving macOS migration for when Migration Assistant simply is not an option</em></li>
+      <li><span>Memento Folio</span><em>a storefront whose hero is a book carved into a face, flipped one cross-section at a time</em></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════ 4 · EVIDENCE ══════════════ -->
+<section class="sec sec--evidence" data-scene="evidence" aria-labelledby="ev-h">
+  <div class="wrap">
+    <p class="eyebrow">04 &mdash; Multi-lead recording</p>
+    <h2 id="ev-h" class="h-display">Evidence.</h2>
+    <p class="sec__note">Nineteen channels. Own name in bold.</p>
+  </div>
+  <ol class="pubs" data-pubs></ol>
+  <noscript>
+    <div class="wrap"><p class="sec__note">Publication list requires JavaScript to
+      render as a recording; the full citations are in the page source.</p></div>
+  </noscript>
+</section>
+
+<!-- ══════════════ 5 · LEDGER ══════════════ -->
+<section class="sec sec--ledger" data-scene="ledger" aria-labelledby="led-h">
+  <div class="wrap">
+    <p class="eyebrow">05 &mdash; Ledger</p>
+    <h2 id="led-h" class="h-display">Rooms I&rsquo;ve been useful in.</h2>
+
+    <ul class="ledger" data-ledger>
+      <li><span class="ledger__yr">2025&ndash;26</span><span class="ledger__what">Tufts Urology Interest Group</span><em>Co-President</em></li>
+      <li><span class="ledger__yr">2025&ndash;26</span><span class="ledger__what">Tufts AI &amp; Biotechnology Club</span><em>Founder, Co-President</em></li>
+      <li><span class="ledger__yr">2022&ndash;25</span><span class="ledger__what">Tufts Sharewood Student-Run Clinic</span><em>M.S. Director &mdash; led IRB, launched the blood pressure clinic</em></li>
+      <li><span class="ledger__yr">2023&ndash;24</span><span class="ledger__what">Tufts Student Government</span><em>Secretary, Treasurer</em></li>
+      <li><span class="ledger__yr">2019&ndash;</span><span class="ledger__what">American Medical Response</span><em>EMT &mdash; 911 across five boroughs; on call at MSG, Yankee Stadium, the US Open</em></li>
+      <li><span class="ledger__yr">2017&ndash;20</span><span class="ledger__what">Columbia AMSA</span><em>Vice President, Treasurer, Public Health Chair</em></li>
+    </ul>
+
+    <p class="honors">
+      <span class="chrome">HONORS</span>
+      Harold Williams Research Fellowship &middot; Honos Civicus &middot; Best Biomedical
+      Engineering Senior Thesis &middot; Columbia Fast Pitch winner &middot; Columbia
+      Venture Competition 2nd &middot; Human Enhancement Hackathon 3rd &middot;
+      iGEM silver medallist &middot; NIH-DEBUT honourable mention
+    </p>
+
+    <p class="egg-cue chrome" data-egg-cue>
+      Draw a slow spiral in the tissue to induce re&#8209;entry.
+    </p>
+
+    <div class="egg" data-egg hidden>
+      <p class="egg__head chrome">RE-ENTRANT CIRCUIT ESTABLISHED &mdash; UNDOCUMENTED CHANNELS</p>
+      <ul class="egg__list">
+        <li><span>Top 200 in the world</span><em>Pok&eacute;mon Showdown</em></li>
+        <li><span>Unofficial world record</span><em>most T-shirts folded in sixty seconds</em></li>
+        <li><span>36 / 36</span><em>ACT, perfect score</em></li>
+        <li><span>First trumpet</span><em>New York All-State symphonic band</em></li>
+        <li><span>Eagle Scout</span><em>45 merit badges, Order of the Arrow</em></li>
+        <li><span>World&rsquo;s fastest cold brew</span><em>allegedly, and only by ultrasound</em></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 6 · BASELINE ══════════════ -->
+<section class="sec sec--contact" data-scene="contact" aria-labelledby="c-h">
+  <div class="wrap wrap--narrow">
+    <p class="eyebrow">06 &mdash; Return to baseline</p>
+    <h2 id="c-h" class="h-display contact__h">Bring me a problem<br />on the other side<br />of the exam table.</h2>
+
+    <div class="contact__row">
+      <button class="contact__btn" type="button" data-email>
+        <span class="contact__label chrome">EMAIL</span>
+        <span class="contact__val" data-email-val>reveal address</span>
+      </button>
+      <a class="contact__btn" href="https://www.linkedin.com/in/benjamin-greenfield-2020/" target="_blank" rel="noopener noreferrer">
+        <span class="contact__label chrome">LINKEDIN</span>
+        <span class="contact__val">benjamin-greenfield-2020</span>
+      </a>
+    </div>
+
+    <p class="contact__foot chrome">
+      Tufts University School of Medicine &middot; San Francisco &amp; Boston
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <p class="chrome">
+    <span>&copy; <span data-year>2026</span> Benjamin Greenfield</span>
+    <span class="foot__sep" aria-hidden="true">&mdash;</span>
+    <span>The waveform above is a FitzHugh&ndash;Nagumo excitable medium solved on the GPU. The trace is its lead integral, not a drawing.</span>
+  </p>
+</footer>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

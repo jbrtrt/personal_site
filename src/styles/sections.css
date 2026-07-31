@@ -1,0 +1,289 @@
+/* ═══════════ 01 · LEAD II — biography ═══════════════════════ */
+.lead__body {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: var(--s5) var(--s6);
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .lead__body { grid-template-columns: 1fr; gap: var(--s4); }
+}
+
+/* The portrait is treated as a specimen plate: the photograph and
+   its own surface-potential map cross-fade under the pointer. */
+.plate { position: sticky; top: 22vh; }
+.plate__frame {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--rule);
+  background: var(--paper-deep);
+  overflow: hidden;
+  filter: grayscale(1) contrast(1.06);
+}
+:root[data-ground='board'] .plate__frame { background: var(--board-lift); }
+.plate__img, .plate__map {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.plate__map { mix-blend-mode: screen; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
+.plate:hover .plate__map, .plate:focus-within .plate__map { opacity: 0.85; }
+.plate__frame[data-empty] .plate__img { display: none; }
+.plate__frame[data-empty]::after {
+  content: 'PLATE PENDING';
+  position: absolute; inset: 0;
+  display: grid; place-content: center;
+  font: 500 var(--t-chrome)/1 var(--mono);
+  letter-spacing: 0.2em; color: var(--fg-faint);
+}
+.plate figcaption { margin-top: var(--s1); }
+
+.beats { display: grid; gap: var(--s5); }
+.beat {
+  position: relative;
+  padding-left: var(--s4);
+  border-left: 1px solid var(--rule);
+  opacity: 0.28;
+  transition: opacity var(--dur) var(--ease-out);
+}
+.beat[data-active] { opacity: 1; }
+.beat::before {
+  content: ''; position: absolute; left: -3px; top: 0.55em;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--fg-faint);
+  transition: background var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+}
+.beat[data-active]::before {
+  background: var(--na);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--na) 22%, transparent);
+}
+.beat__year {
+  display: block;
+  font: 500 var(--t-chrome)/1 var(--mono);
+  letter-spacing: 0.16em; color: var(--fg-faint);
+  margin-bottom: var(--s1);
+}
+.beat__title {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40;
+  font-weight: 500; font-size: var(--t-xl);
+  line-height: 1.05; letter-spacing: -0.015em;
+  margin-bottom: var(--s1);
+}
+.beat p { color: var(--fg-soft); max-width: var(--measure); text-wrap: pretty; }
+
+/* The premature beat sits early, and looks it. */
+.beat--ectopic { margin-left: calc(var(--s4) * -1); }
+.beat--ectopic .beat__year { color: var(--accent); }
+.beat--ectopic::before { background: var(--accent); }
+.beat--ectopic .beat__title { font-style: italic; }
+
+/* ═══════════ 02 · THE GAP ═══════════════════════════════════ */
+.sec--gap { padding-block: var(--s8); text-align: center; }
+.gap__quote p {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 72;
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.22;
+  letter-spacing: -0.014em;
+  text-wrap: balance;
+}
+.gap__quote em { font-style: italic; color: var(--accent); }
+.gap__turn {
+  margin-top: var(--s4);
+  font-style: italic;
+  color: var(--fg-soft);
+}
+
+.gap__leads {
+  display: flex; justify-content: center; align-items: center;
+  gap: var(--s3); flex-wrap: wrap;
+  margin: var(--s6) 0 var(--s3);
+  font: 500 var(--t-chrome)/1 var(--mono);
+  letter-spacing: 0.22em;
+}
+.gap__lead { color: var(--fg-faint); }
+.gap__lock {
+  padding: 0.4em 0.8em;
+  border: 1px solid var(--rule);
+  color: var(--fg-faint);
+  transition: color var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+}
+.gap__lock[data-locked] { color: var(--na); border-color: var(--na); }
+.gap__foot { color: var(--fg-faint); font-size: var(--t-sm); }
+
+/* ═══════════ 03 · BUILDS — modules on a board ═══════════════ */
+.mods {
+  display: grid;
+  gap: var(--s8);
+  margin-block: var(--s6);
+}
+.mod {
+  position: relative;
+  width: 100%; max-width: 78rem;
+  margin-inline: auto; padding-inline: var(--gutter);
+  max-width: min(78rem, 100%);
+}
+.mod > * { max-width: 40rem; }
+/* Alternate the modules across the board so the camera has to travel. */
+.mod:nth-child(even) > * { margin-left: auto; text-align: right; }
+@media (max-width: 880px) {
+  .mod:nth-child(even) > * { margin-left: 0; text-align: left; }
+}
+
+.mod__id { display: block; color: var(--accent); margin-bottom: var(--s2); }
+.mod__name {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 60;
+  font-weight: 500; font-size: var(--t-xl);
+  line-height: 1.04; letter-spacing: -0.018em;
+  margin-bottom: var(--s2);
+  text-wrap: balance;
+}
+.mod__body { color: var(--fg-soft); text-wrap: pretty; }
+.mod__meta { display: block; margin-top: var(--s2); color: var(--fg-faint); }
+.mod__claim {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+  font-size: var(--t-sm);
+  font-style: italic;
+  color: var(--fg-faint);
+}
+
+.register__h { display: block; margin-bottom: var(--s3); color: var(--accent); }
+.register { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.register li {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: var(--s2) var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.register span { font-weight: 600; }
+.register em { font-style: normal; color: var(--fg-faint); font-size: var(--t-sm); }
+@media (max-width: 640px) {
+  .register li { grid-template-columns: 1fr; gap: var(--s1); }
+}
+
+/* ═══════════ 04 · EVIDENCE — multi-lead recording ═══════════ */
+.pubs {
+  margin-top: var(--s5);
+  border-top: 1px solid var(--rule);
+}
+.pub {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 9rem);
+  gap: var(--s3);
+  align-items: baseline;
+  padding: var(--s2) var(--gutter);
+  border-bottom: 1px solid var(--rule);
+  max-width: 78rem; margin-inline: auto;
+  transition: background var(--dur-fast) var(--ease-out);
+  overflow: hidden;
+}
+.pub::after {
+  /* each row carries its own hairline trace, drawn on hover */
+  content: ''; position: absolute; inset: 0;
+  background: var(--pub-trace) center left / 100% 100% no-repeat;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur) var(--ease-out);
+}
+.pub:hover, .pub:focus-within { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.pub:hover::after, .pub:focus-within::after { opacity: 0.5; }
+.pub__yr {
+  font: 500 var(--t-chrome)/1.6 var(--mono);
+  letter-spacing: 0.1em; color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+.pub__t { font-size: var(--t-sm); line-height: 1.5; text-wrap: pretty; }
+.pub__t b { font-weight: 700; color: var(--fg); }
+.pub__v {
+  font: 500 var(--t-chrome)/1.6 var(--mono);
+  letter-spacing: 0.1em; color: var(--accent);
+  text-align: right;
+}
+.pub[data-kind='patent'] .pub__v { color: var(--k); }
+@media (max-width: 780px) {
+  .pub { grid-template-columns: 3.5rem minmax(0, 1fr); }
+  .pub__v { grid-column: 2; text-align: left; }
+}
+
+/* ═══════════ 05 · LEDGER ═══════════════════════════════════ */
+.ledger { border-top: 1px solid var(--rule); margin-bottom: var(--s5); }
+.ledger li {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 16rem) minmax(0, 1fr);
+  gap: var(--s2) var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.ledger__yr {
+  font: 500 var(--t-chrome)/1.6 var(--mono);
+  letter-spacing: 0.1em; color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ledger__what { font-weight: 600; }
+.ledger em { font-style: normal; color: var(--fg-faint); font-size: var(--t-sm); }
+@media (max-width: 780px) {
+  .ledger li { grid-template-columns: 5rem minmax(0, 1fr); }
+  .ledger em { grid-column: 2; }
+}
+
+.honors {
+  max-width: 52rem;
+  color: var(--fg-soft);
+  font-size: var(--t-sm);
+  line-height: 1.75;
+}
+.honors .chrome { display: block; margin-bottom: var(--s1); color: var(--accent); }
+
+.egg-cue {
+  margin-top: var(--s6);
+  padding: var(--s2) 0;
+  border-top: 1px dashed var(--rule);
+  color: var(--fg-faint);
+  transition: color var(--dur) var(--ease-out);
+}
+.egg-cue[data-close] { color: var(--na); }
+
+.egg {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--na);
+  background: color-mix(in srgb, var(--na) 6%, transparent);
+}
+.egg__head { display: block; color: var(--na); margin-bottom: var(--s2); }
+.egg__list { display: grid; gap: var(--s1); }
+.egg__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  gap: var(--s2);
+  font-size: var(--t-sm);
+}
+.egg__list span { font-weight: 600; }
+.egg__list em { font-style: normal; color: var(--fg-faint); }
+@media (max-width: 640px) { .egg__list li { grid-template-columns: 1fr; gap: 0; } }
+
+/* ═══════════ 06 · CONTACT ══════════════════════════════════ */
+.sec--contact { padding-block: var(--s8); }
+.contact__h { font-size: var(--t-xxl); margin-bottom: var(--s5); }
+
+.contact__row { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.contact__btn {
+  display: grid; gap: 0.35rem;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule);
+  text-decoration: none;
+  text-align: left;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+.contact__btn:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.contact__label { color: var(--fg-faint); }
+.contact__val { font-size: var(--t-md); font-weight: 500; }
+.contact__foot { margin-top: var(--s5); color: var(--fg-faint); }

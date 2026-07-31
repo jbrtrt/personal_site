@@ -1,0 +1,121 @@
+/* ─────────────────────────────────────────────────────────────
+   Typography — three registers, matching the three the signal
+   moves through: Didone display (the journal plate), grotesk
+   body (the prose), mono (the instrument chrome).
+   ───────────────────────────────────────────────────────────── */
+
+.h-display {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 96;
+  font-weight: 500;
+  font-size: var(--t-xxl);
+  line-height: 0.96;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.eyebrow {
+  font: 500 var(--t-chrome)/1 var(--mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  margin-bottom: var(--s3);
+}
+
+.chrome {
+  font-family: var(--mono);
+  font-size: var(--t-chrome);
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.sec__note {
+  color: var(--fg-soft);
+  max-width: var(--measure);
+  margin-top: var(--s2);
+}
+
+/* ── hero ──────────────────────────────────────────────────── */
+.sec--hero {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  /* clear the strip chart pinned to the bottom of the viewport */
+  padding-block: var(--s6) calc(22vh + var(--s4));
+}
+.hero__grid {
+  width: 100%; max-width: 78rem;
+  margin-inline: auto; padding-inline: var(--gutter);
+}
+
+.chrome--top {
+  display: flex; gap: var(--s2); align-items: center;
+  margin-bottom: var(--s4);
+  color: var(--fg-faint);
+}
+.chrome__dot { opacity: 0.45; }
+
+/* The name does NOT split into characters and stagger in — that is
+   the tell. It develops, the way ink develops on moving chart
+   paper: a hard wipe that the depolarization wavefront drives. */
+.hero__name {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 144;
+  font-weight: 400;
+  font-size: var(--t-hero);
+  line-height: 0.82;
+  letter-spacing: -0.038em;
+  margin-bottom: var(--s3);
+}
+.hero__given, .hero__family {
+  display: block;
+  clip-path: inset(0 100% 0 0);
+  will-change: clip-path;
+}
+.hero__family {
+  margin-left: 0.11em;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.hero__role {
+  font: 500 var(--t-chrome)/1 var(--mono);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--s4);
+  opacity: 0;
+}
+
+.hero__lede {
+  font-size: var(--t-lg);
+  line-height: 1.42;
+  max-width: 30rem;
+  color: var(--fg-soft);
+  text-wrap: pretty;
+  opacity: 0;
+}
+
+.chrome--cue {
+  margin-top: var(--s5);
+  display: flex; gap: var(--s1); align-items: center;
+  opacity: 0;
+}
+.chrome__key {
+  padding: 0.32em 0.6em;
+  border: 1px solid currentColor;
+  color: var(--accent);
+}
+
+/* ── section headings shared ───────────────────────────────── */
+.sec--lead .h-display,
+.sec--builds .h-display,
+.sec--evidence .h-display,
+.sec--ledger .h-display { margin-bottom: var(--s5); }
+
+@media (max-width: 720px) {
+  :root { --t-hero: clamp(2.9rem, 17vw, 5rem); }
+  .hero__lede { font-size: var(--t-md); }
+}

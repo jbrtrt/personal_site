@@ -1,0 +1,90 @@
+/* ─────────────────────────────────────────────────────────────
+   Design tokens
+
+   Two grounds, one argument. A physician reads salmon grid on
+   cream; an engineer reads copper on board. The site inverts
+   between them, and that inversion IS the thesis.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── ground A · ECG chart paper ─────────────────────────── */
+  --paper:        #F7F1E8;
+  --paper-deep:   #EFE6DA;
+  --paper-edge:   #E2D5C4;
+  --grid-minor:   rgba(196, 84, 62, 0.16);
+  --grid-major:   rgba(196, 84, 62, 0.34);
+  --ink:          #17120E;
+  --ink-soft:     #4A4038;
+  --ink-faint:    #8A7A6B;
+
+  /* ── ground B · printed circuit board ───────────────────── */
+  --board:        #0A100E;
+  --board-lift:   #101915;
+  --board-edge:   #1B2A22;
+  --copper:       #C89A4E;
+  --copper-dim:   rgba(200, 154, 78, 0.28);
+  --bone:         #EDE6DA;
+  --bone-soft:    #A79C8C;
+  --bone-faint:   #6B6459;
+
+  /* ── the signal ─────────────────────────────────────────── */
+  --na:           #E8B04B;   /* sodium — depolarization front  */
+  --na-hot:       #FFD57A;
+  --k:            #8E6FD6;   /* potassium — repolarization tail */
+  --k-deep:       #4A3A73;
+  --refractory:   #2A2138;
+
+  /* ── live, swapped by the scene controller ──────────────── */
+  --bg:           var(--paper);
+  --fg:           var(--ink);
+  --fg-soft:      var(--ink-soft);
+  --fg-faint:     var(--ink-faint);
+  --rule:         var(--paper-edge);
+  --accent:       #C4543E;
+
+  /* ── type ───────────────────────────────────────────────── */
+  --display: 'Bodoni Moda Variable', 'Bodoni Moda', 'Didot', 'Times New Roman', serif;
+  --body:    'Archivo Variable', 'Archivo', system-ui, -apple-system, sans-serif;
+  --mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* fluid scale — 1.333 at the top, tightening toward body */
+  --t-hero:  clamp(3.2rem, 13vw, 12.5rem);
+  --t-xxl:   clamp(2.4rem, 6.4vw, 5.6rem);
+  --t-xl:    clamp(1.9rem, 3.9vw, 3.1rem);
+  --t-lg:    clamp(1.35rem, 2.1vw, 1.85rem);
+  --t-md:    clamp(1.02rem, 1.16vw, 1.16rem);
+  --t-sm:    0.9rem;
+  --t-xs:    0.735rem;
+  --t-chrome: 0.685rem;
+
+  /* ── space · 8px base, geometric ────────────────────────── */
+  --s1: 0.5rem;   --s2: 1rem;    --s3: 1.5rem;
+  --s4: 2.5rem;   --s5: 4rem;    --s6: 6.5rem;
+  --s7: 10.5rem;  --s8: 17rem;
+
+  --gutter: clamp(1.25rem, 5vw, 5.5rem);
+  --measure: 34rem;
+
+  /* ── motion ─────────────────────────────────────────────── */
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --dur-fast: 220ms;
+  --dur:      480ms;
+  --dur-slow: 1100ms;
+
+  --z-field: 0;
+  --z-trace: 1;
+  --z-grain: 2;
+  --z-content: 3;
+  --z-rail: 10;
+}
+
+/* The engineer's half of the site. */
+:root[data-ground='board'] {
+  --bg:       var(--board);
+  --fg:       var(--bone);
+  --fg-soft:  var(--bone-soft);
+  --fg-faint: var(--bone-faint);
+  --rule:     var(--board-edge);
+  --accent:   var(--copper);
+}
