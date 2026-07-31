@@ -69,16 +69,39 @@ export function buildPotentialMap(img: HTMLImageElement, out: HTMLCanvasElement)
   ctx.putImageData(outImg, 0, 0);
 }
 
+/* Whichever of these is present in public/ wins. The photo has to be
+   droppable by hand without touching code, so the filename must not be
+   a thing that can be got wrong. */
+const CANDIDATES = ['./headshot.jpg', './headshot.jpeg', './headshot.png', './headshot.webp'];
+
 export function wirePortrait(root: ParentNode = document) {
   const img = root.querySelector<HTMLImageElement>('[data-portrait]');
   const map = root.querySelector<HTMLCanvasElement>('[data-portrait-map]');
   if (!img || !map) return;
 
+  const frame = img.closest<HTMLElement>('.plate__frame');
+  let attempt = 0;
+
   const run = () => {
     if (!img.naturalWidth) return;
+    frame?.removeAttribute('data-empty');
     buildPotentialMap(img, map);
   };
 
-  if (img.complete && img.naturalWidth) run();
-  else img.addEventListener('load', run, { once: true });
+  const next = () => {
+    attempt++;
+    if (attempt < CANDIDATES.length) {
+      img.src = CANDIDATES[attempt]!;
+      return;
+    }
+    if (frame) frame.dataset.empty = '1';
+  };
+
+  img.addEventListener('load', run);
+  img.addEventListener('error', next);
+
+  if (img.complete) {
+    if (img.naturalWidth) run();
+    else next();
+  }
 }
