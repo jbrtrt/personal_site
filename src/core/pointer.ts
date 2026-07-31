@@ -25,6 +25,7 @@ export interface Stimulus {
 }
 
 type SpiralHandler = (x: number, y: number) => void;
+type StimulusHandler = (at: number) => void;
 
 export class Pointer {
   readonly state: PointerState = { x: 0.5, y: 0.5, down: false, moved: false };
@@ -34,6 +35,7 @@ export class Pointer {
   private turning = 0;
   private lastAngle: number | null = null;
   private onSpiral: SpiralHandler | null = null;
+  private onEctopic: StimulusHandler | null = null;
   private spiralFired = false;
   private lastEmit = 0;
 
@@ -54,6 +56,14 @@ export class Pointer {
   }
 
   onReentry(fn: SpiralHandler) { this.onSpiral = fn; }
+
+  /**
+   * Called when the *reader* excites the tissue — not when the page does it
+   * for them. The scroll choreography nudges the medium as sections arrive,
+   * and those nudges must not be reported as heartbeats: an ectopic complex
+   * on the strip has to mean somebody caused one.
+   */
+  onStimulus(fn: StimulusHandler) { this.onEctopic = fn; }
 
   /** Drain the pending stimuli — the sim consumes at most 8 a frame. */
   take(): Stimulus[] {
@@ -77,6 +87,7 @@ export class Pointer {
     this.turning = 0;
     this.lastAngle = null;
     this.fire(p.x, p.y, 0.055, 1);
+    this.onEctopic?.(performance.now());
     document.documentElement.dataset.stimulated = '1';
   };
 
@@ -90,6 +101,7 @@ export class Pointer {
     const now = performance.now();
     if (now - this.lastEmit > 26) {
       this.fire(p.x, p.y, 0.038, 1);
+      this.onEctopic?.(now);
       this.lastEmit = now;
     }
 

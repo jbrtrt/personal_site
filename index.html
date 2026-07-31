@@ -66,6 +66,14 @@
     <p class="eyebrow">01 &mdash; Lead II</p>
     <h2 id="lead-h" class="h-display">A rhythm, read back.</h2>
 
+    <ul class="creds">
+      <li><span class="creds__k chrome">MD</span><span>Tufts University School of Medicine &middot; 2024&ndash;2028</span></li>
+      <li><span class="creds__k chrome">MS</span><span>Biomedical Sciences &middot; hydrocele and its treatment &middot; 2022&ndash;2024</span></li>
+      <li><span class="creds__k chrome">BS</span><span>Biomedical Engineering, Columbia &middot; minor in Computer Science</span></li>
+      <li><span class="creds__k chrome">EMT</span><span>Licensed and working 911 since 2019</span></li>
+      <li><span class="creds__k chrome">USPTO</span><span>Two patents, both filed before twenty-three</span></li>
+    </ul>
+
     <div class="lead__body">
       <figure class="plate">
         <div class="plate__frame">
@@ -87,6 +95,23 @@
           <p>Accepted to a US medical school at sixteen. Turned it down. An extra
              systole fires ahead of the rhythm it belongs to &mdash; early, out of
              sequence, and entirely real.</p>
+        </li>
+        <li class="beat" data-beat="p1">
+          <span class="beat__year">2014&ndash;2015</span>
+          <h3 class="beat__title">Regeneron</h3>
+          <p>Genome Engineering Technologies. Expressing and purifying genetic
+             variants of a nociceptive-specific sodium channel &mdash; the protein
+             that decides whether a nerve fires at all &mdash; so the variants could
+             be screened against drugs and used to model pain. First bench, first
+             time a membrane current was a thing I had to make work.</p>
+        </li>
+        <li class="beat" data-beat="p2">
+          <span class="beat__year">2015&ndash;2016</span>
+          <h3 class="beat__title">Einstein</h3>
+          <p>Fricker Lab, Molecular Pharmacology. Designed original assays for how
+             neuropeptides change the morphology of striatal cells, and did the
+             quantitative peptidomics behind them &mdash; mass spectrometry of
+             proteasome products, read as data rather than as pictures.</p>
         </li>
         <li class="beat" data-beat="p">
           <span class="beat__year">2016&ndash;2020</span>
@@ -112,9 +137,11 @@
         <li class="beat" data-beat="s">
           <span class="beat__year">2020&ndash;2024</span>
           <h3 class="beat__title">ViveSense</h3>
-          <p>Founder and CEO. Core hardware for a patented at-home male fertility
-             test. NSF SBIR Phase&nbsp;I, the NSF I-Corps program, and forty-plus hours
-             of interviews with physicians and the men nobody asks.</p>
+          <p>Four years as founder and CEO. Core hardware for a patented at-home
+             male fertility test, an NSF SBIR Phase&nbsp;I application, the NSF
+             I-Corps program, and forty-plus hours of interviews with physicians
+             and with the men nobody asks. Four years is long enough to find out
+             which of your assumptions were load-bearing.</p>
         </li>
         <li class="beat" data-beat="t">
           <span class="beat__year">2023</span>
@@ -130,6 +157,9 @@
              and an EMT patch that has been on since 2019.</p>
         </li>
       </ol>
+
+      <p class="lead__close">I run tests before I trust a result, in the lab or
+        in a repo.</p>
     </div>
   </div>
 </section>
@@ -166,27 +196,45 @@
 
     <li class="mod" data-mod="vivesense">
       <p class="mod__id chrome">M1 &middot; ViveSense, Inc.</p>
+      <p class="mod__claim">Patented at-home test &middot; NSF SBIR Phase&nbsp;I &middot; NSF I-Corps &middot; 40+ hours of interviews</p>
       <h3 class="mod__name">Fertility screening that never leaves the house</h3>
       <p class="mod__body">Male-factor causes roughly half of infertility, and the
         diagnostic path starts with a clinic visit most men never book. ViveSense is
         core hardware for an at-home semen analysis &mdash; optical, patent-backed,
         built to be read at a kitchen table rather than a bench.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="vivesense" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 1</b> &mdash; Bland&ndash;Altman
+          acceptance band against laboratory semen analysis: bias on the centre
+          line, limits of agreement at &plusmn;1.96&nbsp;SD. This is the criterion
+          the device has to meet, not a result it has posted.</figcaption>
+      </figure>
       <p class="mod__meta chrome">Hardware &middot; optics &middot; US20230204935A1 &middot; NSF SBIR I &middot; I-Corps</p>
-      <p class="mod__claim">In development. Screening and monitoring &mdash; not a diagnosis.</p>
+      <p class="mod__caveat">In development. Screening and monitoring &mdash; not a diagnosis.</p>
     </li>
 
     <li class="mod" data-mod="nephra">
       <p class="mod__id chrome">M2 &middot; NEPHRA ONE</p>
+      <p class="mod__claim">Direct descendant of the ambulatory hemofiltration work &middot; investigational</p>
       <h3 class="mod__name">The dialysis chair, deleted</h3>
       <p class="mod__body">A concept implantable total artificial kidney: continuous
         filtration in place of three sessions a week and the hundred and sixty-eight
         hour week that dialysis quietly takes from people. It is the direct descendant
         of the ambulatory hemofiltration work I did in the Artificial Organs Lab.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="nephra" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 2</b> &mdash; Single-pool urea
+          kinetics over one week, integrated rather than drawn: the same weekly
+          clearance delivered as three four-hour sessions and as a continuous
+          17.9&nbsp;mL/min. Identical clearance, and the peaks are the part
+          patients actually feel.</figcaption>
+      </figure>
       <p class="mod__meta chrome">Implantable &middot; hemofiltration &middot; ASAIO 2020 &middot; investigational</p>
     </li>
 
     <li class="mod" data-mod="stoneidx">
       <p class="mod__id chrome">M3 &middot; stoneidx</p>
+      <p class="mod__claim">Charlson and Elixhauser are miscalibrated where stones are rare &middot; 4.1M encounters &middot; pooled AUC 0.713 across 19 cohorts</p>
       <h3 class="mod__name">A comorbidity index for kidney stones</h3>
       <p class="mod__body">Five independent arms fit across national discharge data,
         then harmonised into one integer point table. Firth penalised regression where
@@ -194,23 +242,40 @@
         chosen by parallel analysis rather than an eigenvalue rule of thumb. The unit
         of analysis is the encounter, never the person &mdash; enforced by a lint test
         that fails the build if a source file says otherwise.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="stoneidx" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 3</b> &mdash; Pooled discrimination
+          across 19 cohorts, against chance at 0.50. The per-cohort rows are
+          deliberately absent: the pooled estimate is what has been computed, and
+          a forest plot of invented cohorts would defeat the point of the
+          exercise.</figcaption>
+      </figure>
       <p class="mod__meta chrome">HCUP NIS / NEDS / NASS / NRD &middot; Python &middot; cluster-robust</p>
-      <p class="mod__claim">Modest AUC is the expected result. Nothing here is tuned toward a number.</p>
+      <p class="mod__caveat">Modest AUC is the expected result. Nothing here is tuned toward a number.</p>
     </li>
 
     <li class="mod" data-mod="ocula">
       <p class="mod__id chrome">M4 &middot; Ocula Health, Inc.</p>
+      <p class="mod__claim">Summaries travel, raw life stays home &mdash; consent-gated by architecture, not by a setting</p>
       <h3 class="mod__name">The other 8,758 hours</h3>
       <p class="mod__body">Twenty minutes in March, then a hundred and ninety-two days
         of dinners, doses and decisions made alone. Ocula is a coach that lives in
         those hours and sends the care team a short summary afterwards. Who sees what
         is not a settings page three menus deep &mdash; it is the architecture.
         Summaries travel. Raw life stays home.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="ocula" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 4</b> &mdash; One year, to scale.
+          8,760 hours; roughly two of them observed by the care team. The bar is
+          the argument &mdash; everything the clinic decides is inferred from the
+          sliver on the left.</figcaption>
+      </figure>
       <p class="mod__meta chrome">Longitudinal care &middot; on-device capture &middot; consent-gated egress</p>
     </li>
 
     <li class="mod" data-mod="flopcheck">
       <p class="mod__id chrome">M5 &middot; FlopCheck</p>
+      <p class="mod__claim">Extends US12511900B2 &middot; the stress test has monocular pose inventing metres of phantom depth, triangulation fixing it to millimetres</p>
       <h3 class="mod__name">Did the contact actually do that?</h3>
       <p class="mod__body">Three-dimensional pose off broadcast video, then an
         impulse-momentum check against the motion that followed: was the reaction
@@ -218,11 +283,19 @@
         impact-detection patent. The honest part is the limitation &mdash; monocular
         depth, not the pose model, is the accuracy ceiling, and the usual benchmarks
         are root-relative, so they hide exactly the quantity the physics consumes.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="flopcheck" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 5</b> &mdash; The method: pose,
+          the impulse the contact could have delivered, and the band of
+          displacements consistent with it. A response landing outside the band
+          did not come from the contact.</figcaption>
+      </figure>
       <p class="mod__meta chrome">Inverse dynamics &middot; Monte Carlo envelope &middot; US12511900B2</p>
     </li>
 
     <li class="mod" data-mod="lantern">
       <p class="mod__id chrome">M6 &middot; Lantern</p>
+      <p class="mod__claim">Deterministic safety layer on every utterance, independent of the model &middot; 374 tests &middot; the log names the rung that is not built yet</p>
       <h3 class="mod__name">A steady presence for the hours between visits</h3>
       <p class="mod__body">A bedside companion for people living with serious illness,
         for the long quiet stretches when no one is in the room. The safety layer is
@@ -230,11 +303,20 @@
         memory is never voiced as fact; prognosis, diagnosis and dosing return refusals
         rather than answers; and a human is one touch away from every screen. It is
         the only thing I have built where the correct behaviour is usually to say less.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="lantern" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 6</b> &mdash; The gate runs on every
+          utterance, not on the ones a model thought were worth flagging. The top
+          rung is drawn open because it is not built &mdash; clinical escalation
+          is named in the log and unimplemented, and saying so is cheaper than
+          finding out later.</figcaption>
+      </figure>
       <p class="mod__meta chrome">Palliative &middot; deterministic safety layer &middot; provenance-tagged memory</p>
     </li>
 
     <li class="mod" data-mod="notes2anki">
       <p class="mod__id chrome">M7 &middot; notes2anki</p>
+      <p class="mod__claim">Reads formatting as meaning &middot; graded on comprehension and Bloom level &middot; 196 offline tests &middot; A/B across two judges, n&nbsp;=&nbsp;17</p>
       <h3 class="mod__name">Flashcards that grade themselves, then argue back</h3>
       <p class="mod__body">Medical notes carry meaning in their formatting &mdash;
         highlight colour, indentation, an arrow, an odd capitalisation. The pipeline
@@ -242,6 +324,13 @@
         them on whether they actually test understanding. Weak cards get one rewrite
         and are otherwise dropped. The prompts that produce them are revised and
         adopted only after a blind A/B gate says the new version is better.</p>
+      <figure class="fig">
+        <canvas class="fig__plot" data-figure="notes2anki" aria-hidden="true"></canvas>
+        <figcaption class="fig__cap"><b>Fig. 7</b> &mdash; The adoption rule. A
+          rewritten prompt ships only if it wins under both judges independently,
+          which is the shaded corner; anything else is discarded no matter how
+          much better it reads.</figcaption>
+      </figure>
       <p class="mod__meta chrome">Python stdlib &middot; two-tier audit &middot; blind A/B adoption gate</p>
     </li>
 
@@ -283,6 +372,7 @@
     <h2 id="led-h" class="h-display">Rooms I&rsquo;ve been useful in.</h2>
 
     <ul class="ledger" data-ledger>
+      <li><span class="ledger__yr">2020&ndash;24</span><span class="ledger__what">ViveSense, Inc.</span><em>Founder &amp; CEO &mdash; hardware, the grant, and every interview</em></li>
       <li><span class="ledger__yr">2025&ndash;26</span><span class="ledger__what">Tufts Urology Interest Group</span><em>Co-President</em></li>
       <li><span class="ledger__yr">2025&ndash;26</span><span class="ledger__what">Tufts AI &amp; Biotechnology Club</span><em>Founder, Co-President</em></li>
       <li><span class="ledger__yr">2022&ndash;25</span><span class="ledger__what">Tufts Sharewood Student-Run Clinic</span><em>M.S. Director &mdash; led IRB, launched the blood pressure clinic</em></li>
@@ -321,7 +411,7 @@
 <section class="sec sec--contact" data-scene="contact" aria-labelledby="c-h">
   <div class="wrap wrap--narrow">
     <p class="eyebrow">06 &mdash; Return to baseline</p>
-    <h2 id="c-h" class="h-display contact__h">Bring me a problem<br />on the other side<br />of the exam table.</h2>
+    <h2 id="c-h" class="h-display contact__h">Working on something<br />in medicine or software?<br />Say so.</h2>
 
     <div class="contact__row">
       <button class="contact__btn" type="button" data-email>
@@ -346,7 +436,7 @@
   <p class="chrome">
     <span>&copy; <span data-year>2026</span> Benjamin Greenfield</span>
     <span class="foot__sep" aria-hidden="true">&mdash;</span>
-    <span>The waveform above is a FitzHugh&ndash;Nagumo excitable medium solved on the GPU. The trace is its lead integral, not a drawing.</span>
+    <span>The background is a Barkley excitable medium solved on the GPU. The strip&rsquo;s morphology is synthesized &mdash; a flat sheet has no atria and no His&ndash;Purkinje system, so it cannot produce a P wave &mdash; but every beat on it is one the simulation actually fired.</span>
   </p>
 </footer>
 

@@ -1,14 +1,15 @@
-import pkg from 'file:///opt/node22/lib/node_modules/playwright/index.js';
-const { chromium } = pkg;
+/* Needs a dev server up: npm run dev, then node scripts/drive.mjs
+   Playwright is a devDependency, so it resolves from node_modules and the
+   browser is whatever `npx playwright install chromium` put in place. */
+import { chromium } from 'playwright';
 import fs from 'node:fs';
 
 const OUT = './.shots';
 fs.mkdirSync(OUT, { recursive: true });
 
-const URL = 'http://localhost:5173/personal_site/';
+const URL = process.env.SITE_URL ?? 'http://localhost:5173/personal_site/';
 
 const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: [
     '--use-gl=angle', '--use-angle=swiftshader',
     '--enable-unsafe-swiftshader', '--no-sandbox',
@@ -47,6 +48,8 @@ const diag = await page.evaluate(() => ({
   traceOn: document.getElementById('trace')?.hasAttribute('data-on'),
   nameClip: getComputedStyle(document.querySelector('.hero__given')).clipPath,
   ledeOpacity: getComputedStyle(document.querySelector('.hero__lede')).opacity,
+  portraitLoaded: !document.querySelector('.plate__frame')?.hasAttribute('data-empty'),
+  probe: window.__bg?.probe?.(),
 }));
 
 // ── scroll through every scene ────────────────────────────────
@@ -60,6 +63,18 @@ for (const s of scenes) {
 }
 
 const groundAfter = await page.evaluate(() => document.documentElement.dataset.ground);
+
+/* Every build figure has to have actually drawn. A canvas that threw is
+   indistinguishable from one that rendered until you look at the pixels, so
+   count non-transparent ones rather than trusting that mount() ran. */
+const figures = await page.evaluate(() =>
+  [...document.querySelectorAll('canvas[data-figure]')].map((c) => {
+    const ctx = c.getContext('2d');
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    let painted = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 8) painted++;
+    return { id: c.dataset.figure, w: c.width, h: c.height, inkedPx: painted };
+  }));
 
 // ── the spiral gesture ────────────────────────────────────────
 await page.evaluate(() => window.scrollTo(0, 0));
@@ -92,6 +107,6 @@ for (const [w, h, name] of [[1024, 768, 'tablet'], [390, 844, 'phone']]) {
   await page.screenshot({ path: `${OUT}/vp-${name}-builds.png` });
 }
 
-console.log(JSON.stringify({ diag, groundAfter, turns, eggOpen, errors }, null, 2));
+console.log(JSON.stringify({ diag, groundAfter, turns, eggOpen, figures, errors }, null, 2));
 
 await browser.close();

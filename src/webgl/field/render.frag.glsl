@@ -47,8 +47,11 @@ float ruling(vec2 p, float weight) {
   return 1.0 - smoothstep(0.0, weight, min(d.x, d.y));
 }
 
-/* Orthogonal routing on the lattice the major grid already drew. */
-float routing(vec2 p, out float via) {
+/* Orthogonal routing on the lattice the major grid already drew.
+   `pad` comes back as a proper annular ring with a drilled centre — a via
+   is a plated hole, and drawing it as a filled dot is the tell that nobody
+   has looked at a board. */
+float routing(vec2 p, out float pad) {
   vec2 cell = floor(p);
   vec2 f = fract(p) - 0.5;
 
@@ -59,11 +62,11 @@ float routing(vec2 p, out float via) {
 
   float trace = 1.0 - smoothstep(0.030, 0.058, d);
 
-  float h = hash21(cell + 71.3);
-  via = h > 0.86 ? (1.0 - smoothstep(0.085, 0.125, length(f)))
-                 * step(0.001, 1.0 - smoothstep(0.125, 0.13, length(f)))
-                 : 0.0;
-  return max(trace, via);
+  float r = length(f);
+  float ring = (1.0 - smoothstep(0.108, 0.132, r)) - (1.0 - smoothstep(0.044, 0.058, r)) * 0.88;
+  pad = hash21(cell + 71.3) > 0.86 ? max(ring, 0.0) : 0.0;
+
+  return max(trace, pad);
 }
 
 void main() {
@@ -76,9 +79,12 @@ void main() {
   float v = fld.g;
 
   /* A narrow excited band reads as a drawn front; a wide one reads
-     as a blob and swallows the type sitting on top of it. */
-  float front = smoothstep(0.38, 0.78, u);
-  float tail  = smoothstep(0.06, 0.52, v) * (1.0 - front * 0.9);
+     as a blob and swallows the type sitting on top of it. Narrowed
+     further once the whole field was quietened — at a quarter of the
+     old amplitude a broad band stops reading as a wavefront at all
+     and just looks like the page is dirty. */
+  float front = smoothstep(0.46, 0.80, u);
+  float tail  = smoothstep(0.12, 0.58, v) * (1.0 - front * 0.9);
 
   /* Leading edge of the wave — where the gradient is steepest.
      This is the part a real electrode actually sees. */
@@ -91,27 +97,38 @@ void main() {
   float minorMask = ruling(mm, 1.0);
   float majorMask = ruling(maj, 1.35);
 
+  /* The substrate carries this page; the wave only annotates it. Both
+     grounds are ruled at full strength and the signal on top of them runs
+     at roughly a quarter of what it did, because a background that competes
+     with the prose has stopped being a background. */
   vec3 paper = PAPER;
   // The minor ruling is deliberately faint: at 1 mm it lands near the
   // pixel grid and a heavier weight beats itself into moiré.
   paper = mix(paper, GRID_MIN, minorMask * 0.085);
   paper = mix(paper, GRID_MAJ, majorMask * 0.30);
-  paper = mix(paper, GRID_MAJ * 0.9, tail * 0.13);          // the stain it leaves
-  paper = mix(paper, INK, front * 0.52);                    // wet ink
-  paper = mix(paper, vec3(0.55, 0.16, 0.11), edge * 0.72);  // the pen itself
+  paper = mix(paper, GRID_MAJ * 0.9, tail * 0.05);          // the stain it leaves
+  paper = mix(paper, INK, front * 0.13);                    // wet ink
+  paper = mix(paper, vec3(0.55, 0.16, 0.11), edge * 0.20);  // the pen itself
 
   /* ── ground B · circuit board ─────────────────────────────── */
-  float via;
-  float tr = routing(maj, via);
+  float pad;
+  float tr = routing(maj, pad);
 
+  /* Built up the way a board is: hatched ground plane, solder-mask tooth,
+     then etched copper and plated vias. This is the entire circuit register
+     of the site — the engineer's half of the thesis lives in the substrate
+     and nowhere else, so it has to hold on its own while the tissue is
+     quiet. Etched, not energised: none of it glows until the wave arrives. */
   vec3 board = BOARD;
-  board += vec3(0.012, 0.020, 0.016) * ruling(mm, 1.0) * 0.5;   // solder-mask tooth
-  board = mix(board, COPPER * 0.26, tr);
-  board += COPPER * via * 0.22;
-  board += COPPER * tr * front * 0.42;                          // current, driven by the tissue
-  board += NA * front * 0.11;
-  board += NA * edge * 0.75;                                     // the front stays a filament
-  board += K  * tail  * 0.16;
+  float hatch = ruling(vec2(mm.x + mm.y, mm.x - mm.y) * 0.25, 0.9);
+  board += vec3(0.010, 0.017, 0.014) * hatch;                   // ground-plane hatch
+  board += vec3(0.012, 0.020, 0.016) * ruling(mm, 1.0) * 0.7;   // solder-mask tooth
+  board = mix(board, COPPER * 0.30, tr * 0.94);                 // etched routing
+  board += COPPER * pad * 0.30;                                 // plated via
+  board += COPPER * tr * front * 0.16;                          // current, driven by the tissue
+  board += NA * front * 0.04;
+  board += NA * edge * 0.22;                                     // the front stays a filament
+  board += K  * tail  * 0.06;
 
   /* Do NOT cross-fade the two grounds directly. A linear mix of cream
      paper and near-black board spends the middle of the transition as
@@ -134,8 +151,11 @@ void main() {
   col = mix(col, paper, pa);
   col = mix(col, board, ba);
 
-  // through the blackout, only the front survives
-  col += NA * edge * 1.20 * (1.0 - pa) * (1.0 - ba);
+  /* Through the blackout, only the front survives. This one term is
+     deliberately *not* quietened with the rest: it is the whole reason the
+     transition routes through black, it lasts about one section, and there
+     is no prose competing with it at that moment. */
+  col += NA * edge * 1.05 * (1.0 - pa) * (1.0 - ba);
 
   /* film + vignette; kills the flat-vector look */
   float n = hash21(px + fract(uTime) * 91.7);

@@ -30,6 +30,12 @@ jobs:
 
       - run: npm ci
 
+      # The offline gates: ECG intervals against their reference ranges, and
+      # WCAG contrast on both grounds. Both exit non-zero on failure, so a
+      # regression in either fails the deploy instead of shipping a rhythm
+      # strip a clinician would flag or type nobody can read.
+      - run: npm run verify
+
       # Typecheck runs as part of build; a type error fails the deploy
       # rather than shipping a broken bundle.
       - run: npm run build

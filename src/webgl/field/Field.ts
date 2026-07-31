@@ -1,13 +1,12 @@
 import {
   WebGLRenderer, WebGLRenderTarget, Scene, OrthographicCamera, Mesh,
   PlaneGeometry, ShaderMaterial, Vector2, Vector4, HalfFloatType,
-  UnsignedByteType, RGBAFormat, LinearFilter, NearestFilter, ClampToEdgeWrapping,
+  RGBAFormat, LinearFilter, ClampToEdgeWrapping,
 } from 'three';
 
 import quadVert from './quad.vert.glsl';
 import simFrag from './sim.frag.glsl';
 import renderFrag from './render.frag.glsl';
-import reduceFrag from './reduce.frag.glsl';
 import type { Capability } from '../../core/capability';
 import type { Stimulus } from '../../core/pointer';
 
@@ -23,35 +22,27 @@ export class Field {
   private a!: WebGLRenderTarget;
   private b!: WebGLRenderTarget;
 
-  private rA!: WebGLRenderTarget;   // 64×64
-  private rB!: WebGLRenderTarget;   // 8×8
-  private rC!: WebGLRenderTarget;   // 1×1, packed to 16 bits
-
   private simMat: ShaderMaterial;
   private drawMat: ShaderMaterial;
-  private reduceMat: ShaderMaterial;
 
   private simW = 1;
   private simH = 1;
-
-  private readBuf = new Uint8Array(4);
-
-  /** Latest lead integral S(t), and its derivative — the trace. */
-  lead = 0;
-  dLead = 0;
-  private prevLead = 0;
 
   private substeps: number;
   private frameCost = 16;
   private degraded = false;
 
-  /* A resting sinus rate, not a lazy one. The tissue itself decides
-     whether each beat captures: a stimulus landing in the refractory
-     tail of the previous wave simply fails, exactly as it would in
-     real muscle, so the rhythm on the readout is earned rather than
-     asserted. */
+  /* The sinus node. 1000 ms — 60 bpm, the slow end of normal sinus
+     rhythm — and it keeps its own clock: nothing downstream resets it.
+     That is the whole mechanism behind the compensatory pause, because
+     an ectopic beat leaves the ventricle refractory when the next sinus
+     impulse arrives on schedule, and the beat after that lands a full
+     cycle later. See Rhythm in ecg/waveform.ts. */
   private paceAt = 0;
   private paceEvery = 1000;
+
+  /** Fired when the pacemaker discharges, so the strip can schedule a beat. */
+  onPace: ((now: number) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement, private cap: Capability) {
     this.renderer = new WebGLRenderer({
@@ -88,17 +79,6 @@ export class Field {
       },
     });
 
-    this.reduceMat = new ShaderMaterial({
-      vertexShader: quadVert, fragmentShader: reduceFrag,
-      uniforms: {
-        uSrc: { value: null }, uSrcTexel: { value: new Vector2() },
-        uFirst: { value: 0 }, uPack: { value: 0 }, uAspect: { value: 1 },
-        uE1: { value: new Vector2(0.18, 0.86) },   // ≈ right arm
-        uE2: { value: new Vector2(0.84, 0.12) },   // ≈ left leg  → Lead II
-        uGain: { value: 8 },
-      },
-    });
-
     this.quad = new Mesh(new PlaneGeometry(2, 2), this.simMat);
     this.quad.frustumCulled = false;
     this.scene.add(this.quad);
@@ -106,12 +86,12 @@ export class Field {
     this.resize();
   }
 
-  private makeRT(w: number, h: number, byte = false) {
+  private makeRT(w: number, h: number) {
     return new WebGLRenderTarget(w, h, {
-      type: byte ? UnsignedByteType : HalfFloatType,
+      type: HalfFloatType,
       format: RGBAFormat,
-      minFilter: byte ? NearestFilter : LinearFilter,
-      magFilter: byte ? NearestFilter : LinearFilter,
+      minFilter: LinearFilter,
+      magFilter: LinearFilter,
       wrapS: ClampToEdgeWrapping, wrapT: ClampToEdgeWrapping,
       depthBuffer: false, stencilBuffer: false, generateMipmaps: false,
     });
@@ -132,15 +112,8 @@ export class Field {
     this.a = this.makeRT(this.simW, this.simH);
     this.b = this.makeRT(this.simW, this.simH);
 
-    if (!this.rA) {
-      this.rA = this.makeRT(64, 64);
-      this.rB = this.makeRT(8, 8);
-      this.rC = this.makeRT(1, 1, true);
-    }
-
     this.simMat.uniforms.uTexel.value.set(1 / this.simW, 1 / this.simH);
     this.simMat.uniforms.uAspect.value = aspect;
-    this.reduceMat.uniforms.uAspect.value = aspect;
     this.drawMat.uniforms.uRes.value.set(w, h);
     // Chart paper reads as chart paper only at a plausible physical
     // scale; hold ~9 CSS px per millimetre, tightening on phones.
@@ -182,16 +155,35 @@ export class Field {
     }, 240);
   }
 
-  /**
-   * @param measure  Read the lead integral back this step. The readback
-   *   is a GPU sync point, so a warm-up loop that wants N steps of
-   *   tissue — not N samples of trace — must pass false or it will
-   *   stall the main thread once per iteration.
-   */
-  step(dtMs: number, stimuli: Stimulus[], now: number, measure = true) {
-    if (now - this.paceAt > this.paceEvery) {
+  step(dtMs: number, stimuli: Stimulus[], now: number) {
+    /* The sinus node runs on its own clock, not on the frame clock.
+       Resetting paceAt to `now` on each discharge quantises the interval up
+       to one frame every beat, so a machine rendering at 5 fps reports 35 bpm
+       for a pacemaker set to 60 — the rate becomes a property of the GPU,
+       which is the exact failure the substep scaling below exists to avoid.
+       Advancing by whole intervals keeps it honest. */
+    if (!this.paceAt) this.paceAt = now;
+
+    let fired = 0;
+    if (now - this.paceAt > this.paceEvery * 4) {
+      /* Back from a stall — a hidden tab, or a machine slower than the heart.
+         Resync instead of replaying the backlog, but still fire: dropping the
+         beat here means a device whose every frame is longer than the interval
+         never gets a rhythm at all, which is worse than an irregular one. */
       this.paceAt = now;
-      stimuli = stimuli.concat([{ x: 0.13, y: 0.84, radius: 0.035, amplitude: 1 }]);
+      this.onPace?.(now);
+      fired = 1;
+    } else {
+      while (now - this.paceAt >= this.paceEvery && fired < 2) {
+        this.paceAt += this.paceEvery;
+        this.onPace?.(this.paceAt);
+        fired++;
+      }
+    }
+    if (fired) {
+      // A small focus. The wave has to be legible without being the
+      // loudest thing on a page made mostly of prose.
+      stimuli = stimuli.concat([{ x: 0.13, y: 0.84, radius: 0.028, amplitude: 1 }]);
     }
 
     const u = this.simMat.uniforms;
@@ -218,41 +210,7 @@ export class Field {
       const t = this.a; this.a = this.b; this.b = t;
     }
 
-    if (measure) this.reduceLead();
     this.adapt(dtMs);
-  }
-
-  /** sim → 64×64 → 8×8 → 1×1(packed) → CPU. */
-  private reduceLead() {
-    const u = this.reduceMat.uniforms;
-
-    u.uSrc.value = this.a.texture;
-    u.uSrcTexel.value.set(1 / (64 * 8), 1 / (64 * 8));
-    u.uFirst.value = 1; u.uPack.value = 0;
-    this.blit(this.reduceMat, this.rA);
-
-    u.uSrc.value = this.rA.texture;
-    u.uSrcTexel.value.set(1 / (8 * 8), 1 / (8 * 8));
-    u.uFirst.value = 0;
-    this.blit(this.reduceMat, this.rB);
-
-    u.uSrc.value = this.rB.texture;
-    u.uSrcTexel.value.set(1 / 8, 1 / 8);
-    u.uPack.value = 1;
-    this.blit(this.reduceMat, this.rC);
-
-    this.renderer.readRenderTargetPixels(this.rC, 0, 0, 1, 1, this.readBuf);
-    const packed = (this.readBuf[0]! * 256 + this.readBuf[1]!) / 65535;
-    const s = (packed - 0.5) * 2;
-
-    this.prevLead = this.lead;
-    this.lead = s;
-    /* The electrode sees the moving front, not the plateau — so the
-       trace is the derivative. Lightly smoothed, because the readback
-       is quantised to 16 bits and differencing it raw turns that
-       quantisation into visible stair-stepping. */
-    const raw = (s - this.prevLead) * 12;
-    this.dLead = this.dLead * 0.6 + raw * 0.4;
   }
 
   draw(timeSec: number) {
@@ -282,9 +240,8 @@ export class Field {
 
   dispose() {
     this.a.dispose(); this.b.dispose();
-    this.rA.dispose(); this.rB.dispose(); this.rC.dispose();
     this.quad.geometry.dispose();
-    this.simMat.dispose(); this.drawMat.dispose(); this.reduceMat.dispose();
+    this.simMat.dispose(); this.drawMat.dispose();
     this.renderer.dispose();
   }
 }

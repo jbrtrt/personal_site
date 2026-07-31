@@ -37,7 +37,7 @@ ol, ul { list-style: none; }
 .skip:focus { top: var(--s2); }
 
 :focus-visible {
-  outline: 2px solid var(--na);
+  outline: 2px solid var(--signal);
   outline-offset: 3px;
 }
 
@@ -118,7 +118,7 @@ main { position: relative; z-index: var(--z-content); }
   transition: opacity 700ms var(--ease-out);
 }
 .rail[data-on] { opacity: 1; }
-.rail__rate { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--na); }
+.rail__rate { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--signal); }
 @media (max-width: 640px) { .rail__cal { display: none; } }
 
 /* ── layout ────────────────────────────────────────────────── */

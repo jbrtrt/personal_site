@@ -35,8 +35,8 @@ One signal, three registers, and the page moves between them:
 | Register | What it is |
 |---|---|
 | **Field** | A Barkley excitable medium solved on the GPU. Tissue. |
-| **Trace** | The ECG — *derived from the running simulation*, not drawn. |
-| **Circuit** | The same signal as current through copper routing. |
+| **Trace** | The ECG — morphology synthesized, rhythm driven by the simulation. |
+| **Circuit** | The etched substrate the whole page sits on. |
 
 The two professions have two literal colour worlds — salmon-ruled chart paper
 and a dark board with gold traces — and the site inverts between them across
@@ -44,24 +44,51 @@ the thesis section. That inversion is the argument.
 
 ## Things that are real, not decorative
 
-**The ECG is a lead integral.** A body-surface electrode sees a distance-weighted
-sum of membrane potential, so the trace is
+**The ECG morphology is synthesized, and that is the honest version.** An
+earlier build plotted d*S*/d*t* of a lead integral taken across the sheet. That
+was genuinely derived from the simulation and it was *structurally incapable of
+being an ECG*: a flat isotropic medium has no atria, no AV node and no
+His–Purkinje system, so P, PR, QRS and T have no mechanism to exist. It could
+only ever be a squiggle, and to anyone who reads rhythm strips it looked broken —
+because it was.
+
+So the shape of a beat is now a sum of Gaussians, the standard McSharry-style
+construction, and the intervals are measured rather than asserted:
 
 ```
-S(t) = ⟨ u(x,t) · [ 1/|x−E₁| − 1/|x−E₂| ] ⟩
+P 92 ms · PR 155 ms · QRS 85 ms · QT 383 ms · ST isoelectric for 127 ms
 ```
 
-reduced 8×8 at a time from the simulation texture down to a single texel, packed
-to 16 bits, and read back each frame. What is plotted is d*S*/d*t*, because an
-electrode responds to the moving depolarization front rather than the plateau
-behind it — which is exactly why a real QRS is a spike and not a step. Fire a
-stimulus and the trace answers, because it is measuring the same tissue you just
-touched.
+`scripts/ecg-intervals.mjs` parses those wavelet tables straight out of
+`src/ecg/waveform.ts`, finds the fiducial points from the waveform itself, and
+exits non-zero if anything leaves its reference range. It cannot drift from what
+ships.
 
-**The rhythm is earned.** A pacemaker fires on a fixed interval, but a stimulus
-landing in the refractory tail of the previous wave simply fails to capture, as
-it would in real muscle. The rate in the corner reports what the tissue actually
-did.
+**The rhythm is still the simulation's.** The pacemaker discharging schedules a
+sinus beat; exciting the tissue by hand schedules a **PVC** — no P wave, wide
+bizarre QRS, discordant T. Whether either captures is decided by a 300 ms
+ventricular refractory period, so a click landing in the tail of the previous
+beat does nothing at all. That one constant also produces the **compensatory
+pause** for free: the sinus node keeps its own clock and is never reset, so a
+PVC late in the cycle swallows the next sinus impulse and the beat after it
+lands a full cycle later, while a PVC early in the cycle is interpolated and
+nothing is dropped. Hold the pointer down and you pace the ventricle into a run
+of wide complexes that stops when you let go.
+
+**The strip is dimensionally correct.** 25 mm/s and 5 mm/mV — half standard,
+which is a setting real machines use and label when a tall QRS will not fit the
+paper. One millimetre on the strip is the same millimetre the field shader rules
+behind it, and the calibration pulse is a true 200 ms × 1 mV.
+
+**The reported rate is not a function of the GPU.** The sinus node advances by
+whole intervals rather than resetting to the current frame's timestamp; resetting
+quantises the interval up by one frame per beat, which had a 5 fps software
+rasteriser reporting 35 bpm for a pacemaker set to 60.
+
+**The circuit register lives in the substrate.** Ground-plane hatch, solder-mask
+tooth, etched routing and plated vias with real annular rings, all at low
+contrast. The wave on top of it runs at roughly a quarter of its old amplitude:
+a background that competes with the prose has stopped being a background.
 
 **The grid and the routing share a lattice.** Chart paper's 5 mm majors and the
 board's trace pitch are the same lines, so the transition is not a cross-fade
@@ -85,13 +112,16 @@ src/
     capability.ts       WebGL2 / reduced-motion / device probe → full | calm | fallback
     pointer.ts          pointer state + signed-turning-angle spiral detection
   webgl/field/
-    Field.ts            ping-pong GPGPU sim, reduction chain, pacemaker
+    Field.ts            ping-pong GPGPU sim, sinus node, perf governor
     sim.frag.glsl       Barkley model, explicit Euler, zero-flux boundaries
-    render.frag.glsl    both grounds, and the morph between them
-    reduce.frag.glsl    lead integral → 16-bit packed readback
-  ecg/Trace.ts          the strip chart, calibration pulse, R-peak detection
-  ui/                   obfuscated email, portrait potential-map, list rendering
-  data/publications.ts  the record
+    render.frag.glsl    both grounds, the etched substrate, the morph between
+  ecg/
+    waveform.ts         sinus + PVC morphology, Rhythm scheduler, refractoriness
+    Trace.ts            the strip chart, calibrated at 25 mm/s and 5 mm/mV
+  ui/                   email (XOR-masked), portrait, build figures, lists
+  data/
+    publications.ts     the record
+    builds.ts           figure specs, and the urea kinetics behind Fig. 2
   styles/               tokens → base → type → sections
 ```
 
@@ -110,11 +140,64 @@ src/
   Grep the build and it is not there.
 - The page carries no phone number and no home address.
 
+## Verification
+
+```bash
+node scripts/ecg-intervals.mjs   # ECG intervals vs reference ranges — gates
+node scripts/contrast.mjs        # WCAG 2.1 on both grounds — gates
+node scripts/barkley-tune.mjs    # propagation, annihilation, spiral persistence
+
+npm run dev                      # the browser passes need a server up
+node scripts/check.mjs           # shaders, rhythm, figures, console — gates
+node scripts/tiers.mjs           # reduced-motion and no-WebGL tiers
+node scripts/drive.mjs           # full pass with screenshots into .shots/
+```
+
+`check.mjs` is the one to run before a push: it confirms the programs linked,
+the rate reads 60 bpm, a click writes an ectopic beat, every figure drew, and
+the console is clean — without the screenshots, which dominate the runtime on a
+software rasteriser.
+
+Before pushing, `npm run build` and grep `dist/` for the phone number, `Folsom`,
+`jgreen40` and `tufts.edu`. All must be absent: the address is assembled at
+runtime and must never appear in the bundle.
+
+## The build figures
+
+Seven journal plates — axes, ticks, units, numbered captions. Deliberately *not*
+circuits: the electrical argument belongs to the substrate, and a second one
+running through the work would leave neither legible.
+
+They are also careful about what they claim. A figure asserts that somebody
+measured something, so where the numbers exist they are used and the caption
+names them, and where they do not the figure draws the **criterion**, the
+**model** or the **decision rule** instead of inventing observations — and is
+stamped `SCHEMATIC`. Fig. 2 is integrated single-pool urea kinetics rather than
+a drawn curve; Fig. 3 shows the pooled AUC alone, because per-cohort estimates
+would have to be fabricated to fill the rows. Paste the 19 real cohort values
+into `cohorts` in `src/data/builds.ts` and they render with no other change.
+
+## Contrast
+
+`node scripts/contrast.mjs` resolves the tokens, computes WCAG 2.1 ratios for
+every foreground/background pair in use **on both grounds**, and exits non-zero
+below 4.5:1 body / 3:1 UI. Failures get fixed by lifting the token, never by
+enlarging type until the threshold moves.
+
+The ion colours needed splitting to pass. `--na` and `--k` are tuned for a dark
+background; used as ink on cream they measure 1.7:1 and 3.5:1, and 1.7:1 for a
+focus ring is an accessibility failure rather than a stylistic one. So the
+interface uses `--signal` and `--violet`, which carry a ground-aware pair each.
+The membrane keeps its colours.
+
 ## The photograph
 
-Drop it at `public/headshot.jpg`. The path is relative to the page, so it
-resolves under the Pages base path with no code change. Without it the plate
-shows its `PLATE PENDING` state, which is deliberate rather than broken.
+`public/headshot.jpeg`. `.jpg`, `.jpeg`, `.png` and `.webp` all resolve —
+`src/ui/portrait.ts` walks the list — and the path is relative to the page, so
+it works under the Pages base path with no code change. Without it the plate
+shows its `PLATE PENDING` state, which is deliberate rather than broken. On load
+the portrait is also rendered as a Sobel surface-potential map that cross-fades
+on hover.
 
 ## Deployment
 

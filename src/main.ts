@@ -16,9 +16,11 @@ import { detect } from './core/capability';
 import { Pointer } from './core/pointer';
 import { Field } from './webgl/field/Field';
 import { Trace } from './ecg/Trace';
+import { Rhythm } from './ecg/waveform';
 import { wireEmail } from './ui/email';
 import { wirePortrait } from './ui/portrait';
 import { renderPublications, stampYear } from './ui/render';
+import { mountFigures } from './ui/figure';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -31,6 +33,7 @@ renderPublications();
 stampYear();
 wireEmail();
 wirePortrait();
+mountFigures();
 
 if (cap.coarsePointer) {
   const key = document.querySelector<HTMLElement>('.chrome__key');
@@ -75,10 +78,22 @@ if (cap.tier === 'fallback' || !fieldCanvas || !traceCanvas) {
 
 function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   const field = new Field(fieldEl, cap);
-  const trace = new Trace(traceEl);
+  const rhythm = new Rhythm();
+  const trace = new Trace(traceEl, rhythm);
   const pointer = new Pointer();
 
   root.dataset.ground = 'paper';
+
+  /* The sinus node drives the strip. */
+  field.onPace = (now) => rhythm.schedule('sinus', now);
+
+  /* Exciting the tissue by hand is an impulse arising below the atria, so it
+     writes a PVC: no P, wide bizarre QRS, discordant T. Whether it captures
+     is up to Rhythm's refractory period, which is why a click landing in the
+     tail of the previous beat does nothing at all — and why holding and
+     dragging paces the ventricle into a run of wide complexes that stops the
+     moment you let go. */
+  pointer.onStimulus((at) => rhythm.schedule('pvc', at));
 
   pointer.onReentry((x, y) => {
     field.induceReentry(x, y, (s) => pointer.queue.push(s));
@@ -104,8 +119,6 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   const state = { board: 0, dim: 1 };
   let last = performance.now();
   let running = true;
-  let sampleDebt = 0;
-  let lastLead = 0;
 
   gsap.ticker.add((time) => {
     lenis.raf(time * 1000);
@@ -118,24 +131,10 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     if (cap.tier !== 'calm') {
       field.step(dt, pointer.take(), now);
       trace.board = state.board;
-
       /* Paper speed is a physical quantity, so the strip advances on
          wall-clock time rather than on frames. A slow machine gets a
          slower-updating trace, not a differently-scaled one. */
-      sampleDebt += Math.min(dt, 100);
-      const SAMPLE_MS = 1000 / 60;
-      const owed = Math.min(Math.floor(sampleDebt / SAMPLE_MS), 24);
-
-      /* Below 60 fps one frame owes several samples. Pushing the same
-         value repeatedly draws literal flat steps, so interpolate
-         across the gap — the pen moved during that interval whether
-         or not we got a frame to observe it. */
-      for (let i = 1; i <= owed; i++) {
-        const k = i / owed;
-        trace.push(lastLead + (field.dLead - lastLead) * k, now - (owed - i) * SAMPLE_MS);
-        sampleDebt -= SAMPLE_MS;
-      }
-      if (owed) lastLead = field.dLead;
+      trace.advance(now);
       trace.draw();
     }
 
@@ -156,34 +155,34 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   // Dev-only handle for driving and inspecting the page deterministically.
   if (import.meta.env.DEV) {
     (window as unknown as Record<string, unknown>).__bg = {
-      field, trace, pointer, state,
-      probe: () => ({
-        lead: field.lead, dLead: field.dLead, board: state.board, ...trace.debug(),
-      }),
+      field, trace, pointer, rhythm, state,
+      probe: () => ({ board: state.board, dim: state.dim, ...trace.debug() }),
     };
   }
 
   /* ── the first five seconds ───────────────────────────────── */
   if (cap.tier === 'calm') {
     /* Reduced motion gets the composed result, not a faster version of
-       the animation. Warm the tissue without measuring — the readback
-       is a sync stall and 200 of them back to back freeze the thread
-       long enough that the page never finishes waking up. */
+       the animation: one still frame of tissue, and a strip already
+       carrying a readable rhythm rather than two lonely beats. */
+    const now = performance.now();
     for (let i = 0; i < 60; i++) {
-      field.step(16, i === 0 ? [{ x: 0.2, y: 0.72, radius: 0.09, amplitude: 1 }] : [], performance.now(), false);
+      field.step(16, i === 0 ? [{ x: 0.2, y: 0.72, radius: 0.09, amplitude: 1 }] : [], now);
     }
-    field.step(16, [], performance.now());
     field.reveal = 1;
 
     gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
     gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
     document.querySelectorAll('.beat').forEach((b) => b.setAttribute('data-active', '1'));
 
+    rhythm.clear();
+    for (let i = 12; i >= 0; i--) rhythm.schedule('sinus', now - i * 1000);
     trace.board = 0;
-    for (let i = 0; i < 240; i++) trace.push(field.dLead, performance.now());
+    trace.compose(now, 12);
     trace.draw();
     traceEl.setAttribute('data-on', '');
     rail?.setAttribute('data-on', '');
+    if (rateEl) rateEl.textContent = `${rhythm.rate(now)} bpm`;
   } else {
     gsap.timeline({ delay: 0.25 })
     .to(field, { reveal: 1, duration: 1.1, ease: 'power2.out' }, 0)
@@ -245,10 +244,17 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
      reader was actually looking at. */
   /* A sustained spiral fills the whole field, so the quiet values have
      to survive the worst case the reader can deliberately create —
-     not just the resting rhythm. */
+     not just the resting rhythm.
+
+     The board sections sit higher than they used to. uDim scales the whole
+     composite, substrate included, and the substrate is now the part doing
+     the work: the wave itself runs at about a quarter of its old amplitude
+     in the shader, so lifting these lets the etched routing read without
+     letting the signal back up. The hero comes down instead of sitting at
+     full — quiet everywhere was the instruction, hero included. */
   const DIM: Record<string, number> = {
-    hero: 1, lead: 0.26, gap: 0.80, builds: 0.22,
-    evidence: 0.18, ledger: 0.20, contact: 0.55,
+    hero: 0.85, lead: 0.26, gap: 0.80, builds: 0.34,
+    evidence: 0.26, ledger: 0.30, contact: 0.55,
   };
   // The strip is chrome, not content: it recedes wherever prose runs over it.
   const TRACE_OP: Record<string, number> = { hero: 1, gap: 0.8, contact: 0.9 };

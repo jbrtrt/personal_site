@@ -1,18 +1,31 @@
 /**
  * The readout.
  *
- * This draws dS/dt of the lead integral coming off the GPU — so
- * every deflection on screen is caused by a wave actually moving
- * through the tissue behind it. Fire a stimulus and the trace
- * answers; let it sit and the pacemaker's rhythm shows up as a
- * regular complex. Nothing here is a canned waveform.
+ * The strip is a real rhythm strip in the only sense a screen can manage: it
+ * is dimensionally correct. Paper speed is 25 mm/s and the gain is 5 mm/mV —
+ * half standard, which is a setting real machines use and label when a tall
+ * QRS will not fit the paper. One millimetre here is the same millimetre the
+ * field shader rules behind it, so the trace and the chart paper it sits on
+ * share a scale rather than merely resembling one.
  *
- * Paper speed and calibration are honoured for real: 25 mm/s, and
- * the strip opens with the 1 mV calibration pulse that every
- * genuine ECG starts with.
+ * The waveform comes from `Rhythm` — synthesized morphology, since a flat
+ * isotropic sheet cannot produce P, PR, QRS and T (see ecg/waveform.ts). What
+ * the simulation still owns is the rhythm itself: which beats happen, when,
+ * and whether they capture at all.
+ *
+ * Sampling is on wall-clock at a fixed 200 Hz, and because the waveform is
+ * analytic it can be evaluated at exactly the instants owed. A slow machine
+ * gets a correctly-sampled trace rather than an interpolated one.
  */
 
-interface Peak { t: number }
+import type { Rhythm } from './waveform';
+
+/** Real ECG sampling rates are 500 Hz and up; 200 is ample to draw at. */
+const SAMPLE_HZ = 200;
+const SAMPLE_MS = 1000 / SAMPLE_HZ;
+
+const PAPER_SPEED = 25;   // mm/s
+const GAIN = 5;           // mm/mV — half standard
 
 export class Trace {
   private ctx: CanvasRenderingContext2D;
@@ -24,20 +37,16 @@ export class Trace {
   private head = 0;
   private filled = 0;
 
-  private pxPerSample = 3.6;
-  private peaks: Peak[] = [];
-  private lastPeak = 0;
-  private armed = true;
-  /** Slowly-decaying envelope, so detection tracks the signal's own
-      scale instead of a hard-coded number that silently stops
-      matching the moment the gain is retuned. */
-  private envelope = 0.05;
-  private lastPush = 0;
+  /** px per millimetre — matched to the field's chart-paper scale. */
+  private mm = 9;
+  private pxPerSample = 1;
+
+  private nextSampleAt = 0;
 
   bpm = 0;
   board = 0;
 
-  constructor(private canvas: HTMLCanvasElement, samples = 720) {
+  constructor(private canvas: HTMLCanvasElement, private rhythm: Rhythm, samples = 2048) {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) throw new Error('2D context unavailable');
     this.ctx = ctx;
@@ -45,15 +54,13 @@ export class Trace {
     this.resize();
   }
 
-  /** Dev introspection for the detector — see scripts/probe. */
+  /** Dev introspection — see window.__bg.probe(). */
   debug() {
     return {
-      envelope: +this.envelope.toFixed(4),
-      armed: this.armed,
-      peaks: this.peaks.length,
-      lastPeak: this.lastPeak,
       filled: this.filled,
       bpm: this.bpm,
+      beats: this.rhythm.count,
+      mV: +this.buf[(this.head - 1 + this.buf.length) % this.buf.length]!.toFixed(3),
     };
   }
 
@@ -65,76 +72,82 @@ export class Trace {
     this.canvas.width = Math.round(this.w * this.dpr);
     this.canvas.height = Math.round(this.h * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.pxPerSample = this.w < 640 ? 2.6 : 3.6;
+
+    this.mm = this.w < 640 ? 6.5 : 9;
+    this.pxPerSample = (PAPER_SPEED / SAMPLE_HZ) * this.mm;
   }
 
-  push(v: number, now: number) {
-    this.buf[this.head] = v;
-    this.head = (this.head + 1) % this.buf.length;
-    if (this.filled < this.buf.length) this.filled++;
+  /**
+   * Fill the strip as though the pen had already been running for `seconds`.
+   * The reduced-motion tier gets a composed result rather than a fast-forward
+   * of the animation, and a rhythm strip with two beats on it is not a rhythm
+   * strip.
+   */
+  compose(now: number, seconds: number) {
+    this.nextSampleAt = now - seconds * 1000;
+    this.advance(now, Math.ceil(seconds * SAMPLE_HZ) + 8);
+  }
 
-    /* R-peak detection against a decaying envelope.
-       The decay is wall-clock, not per-sample: tying it to sample
-       count means a slow machine holds the threshold high for far
-       longer, and one big transient at boot then desensitises the
-       detector for the rest of the visit. Two-second time constant. */
-    const dt = this.lastPush ? Math.min(now - this.lastPush, 500) : 16;
-    this.lastPush = now;
-    this.envelope = Math.max(this.envelope * Math.exp(-dt / 2000), Math.abs(v), 0.03);
-
-    const RISE = this.envelope * 0.38;
-
-    if (this.armed && v > RISE) {
-      this.armed = false;
-      if (this.lastPeak) {
-        const rr = now - this.lastPeak;
-        if (rr > 240 && rr < 8000) {
-          this.peaks.push({ t: now });
-          if (this.peaks.length > 6) this.peaks.shift();
-        }
-      }
-      this.lastPeak = now;
+  /**
+   * Draw the pen forward to `now`.
+   *
+   * @param budget  Most samples to take in one call. A backgrounded tab can
+   *   owe minutes of paper; the strip is only as long as the screen, so
+   *   catching all of it up sample by sample is work nobody will ever see.
+   */
+  advance(now: number, budget = 96) {
+    if (!this.nextSampleAt) this.nextSampleAt = now;
+    if (now - this.nextSampleAt > budget * SAMPLE_MS) {
+      this.nextSampleAt = now - budget * SAMPLE_MS;
     }
-    if (!this.armed && v < RISE * 0.4 && now - this.lastPeak > 240) this.armed = true;
 
-    if (this.peaks.length >= 2) {
-      const first = this.peaks[0]!.t;
-      const last = this.peaks[this.peaks.length - 1]!.t;
-      const mean = (last - first) / (this.peaks.length - 1);
-      if (mean > 0) this.bpm = Math.round(60000 / mean);
+    let taken = 0;
+    while (this.nextSampleAt <= now && taken < budget) {
+      this.buf[this.head] = this.rhythm.sample(this.nextSampleAt);
+      this.head = (this.head + 1) % this.buf.length;
+      if (this.filled < this.buf.length) this.filled++;
+      this.nextSampleAt += SAMPLE_MS;
+      taken++;
     }
-    if (now - this.lastPeak > 9000) this.bpm = 0;
+
+    this.bpm = this.rhythm.rate(now);
   }
 
   draw() {
     const { ctx, w, h } = this;
     ctx.clearRect(0, 0, w, h);
 
-    const mid = h * 0.62;
-    const amp = h * 0.30;
+    // Baseline sits low enough to leave room for a 1.25 mV PVC above it.
+    const mid = h * 0.68;
+    const pxPerMv = GAIN * this.mm;
 
     // Ink on paper, copper on board.
     const ink = this.board < 0.5 ? '#2A1410' : '#E8B04B';
     const glow = this.board < 0.5 ? 'rgba(196,84,62,0.30)' : 'rgba(232,176,75,0.42)';
     const chrome = this.board < 0.5 ? 'rgba(74,64,56,0.62)' : 'rgba(167,156,140,0.62)';
 
-    // ── the 1 mV calibration pulse ────────────────────────────
-    const calW = 26;
-    const calH = amp * 0.72;
+    /* ── the calibration pulse ──────────────────────────────────
+       200 ms wide, 1 mV tall, both drawn at the strip's own scale —
+       so it measures correctly against the ruling behind it. */
+    const calW = (PAPER_SPEED / 1000) * 200 * this.mm;
+    const calH = pxPerMv;
+    const lead = this.mm * 0.9;
+
     ctx.strokeStyle = ink;
     ctx.lineWidth = 1.35;
     ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(8, mid);
-    ctx.lineTo(8 + calW * 0.34, mid);
-    ctx.lineTo(8 + calW * 0.34, mid - calH);
-    ctx.lineTo(8 + calW * 0.72, mid - calH);
-    ctx.lineTo(8 + calW * 0.72, mid);
-    ctx.lineTo(8 + calW, mid);
+    ctx.lineTo(8 + lead, mid);
+    ctx.lineTo(8 + lead, mid - calH);
+    ctx.lineTo(8 + lead + calW, mid - calH);
+    ctx.lineTo(8 + lead + calW, mid);
+    ctx.lineTo(8 + lead + calW + lead, mid);
     ctx.stroke();
 
-    // ── the trace ─────────────────────────────────────────────
-    const startX = 8 + calW + 6;
+    /* ── the trace ────────────────────────────────────────────── */
+    const startX = 8 + lead + calW + lead + this.mm;
     const usable = w - startX - 8;
     const count = Math.min(this.filled, Math.floor(usable / this.pxPerSample));
     if (count < 2) { this.chrome(chrome, mid); return; }
@@ -146,25 +159,25 @@ export class Trace {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
 
+    let penY = mid;
     for (let i = 0; i < count; i++) {
       const idx = (this.head - count + i + this.buf.length * 2) % this.buf.length;
-      // Soft clip. A hard clamp turns every large deflection into a
-      // flat-topped square, which reads as digital rather than drawn.
-      const v = Math.tanh(3.5 * this.buf[idx]!);
       const x = startX + i * this.pxPerSample;
-      const y = mid - v * amp;
+      // Calibrated, so no soft clip — the scale is chosen to fit the tallest
+      // beat the page can produce. The clamp is a guard against the canvas
+      // edge, not a compressor on the signal.
+      const y = Math.max(2, Math.min(h - 2, mid - this.buf[idx]! * pxPerMv));
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      penY = y;
     }
     ctx.stroke();
     ctx.restore();
 
     // the pen, at the live end
-    const lastIdx = (this.head - 1 + this.buf.length) % this.buf.length;
-    const lastV = Math.tanh(3.5 * this.buf[lastIdx]!);
     const penX = startX + (count - 1) * this.pxPerSample;
     ctx.fillStyle = ink;
     ctx.beginPath();
-    ctx.arc(penX, mid - lastV * amp, 2.1, 0, Math.PI * 2);
+    ctx.arc(penX, penY, 2.1, 0, Math.PI * 2);
     ctx.fill();
 
     this.chrome(chrome, mid);
@@ -183,7 +196,7 @@ export class Trace {
     ctx.fillStyle = color;
     ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace';
     ctx.letterSpacing = '1.4px';
-    ctx.fillText('1 mV', 10, mid - h * 0.30 - 7);
-    ctx.fillText('LEAD II  ·  25 mm/s', 10, h - 8);
+    ctx.fillText('1 mV', 10, mid - GAIN * this.mm - 7);
+    ctx.fillText('LEAD II  ·  25 mm/s  ·  5 mm/mV', 10, h - 8);
   }
 }

@@ -1,11 +1,13 @@
-import pkg from 'file:///opt/node22/lib/node_modules/playwright/index.js';
-const { chromium } = pkg;
+/* Needs a dev server up: npm run dev, then node scripts/tiers.mjs */
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+
 const OUT = './.shots';
-const URL = 'http://localhost:5173/personal_site/';
+fs.mkdirSync(OUT, { recursive: true });
+const URL = process.env.SITE_URL ?? 'http://localhost:5173/personal_site/';
 
 async function tier(name, launchArgs, contextOpts) {
   const b = await chromium.launch({
-    executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
     args: ['--no-sandbox', '--disable-dev-shm-usage', ...launchArgs],
   });
   const page = await b.newPage({ viewport: { width: 1280, height: 800 }, ...contextOpts });
@@ -14,6 +16,13 @@ async function tier(name, launchArgs, contextOpts) {
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await page.goto(URL, { waitUntil: 'networkidle' });
   await page.waitForTimeout(3500);
+  await page.screenshot({ path: `${OUT}/tier-${name}.png` });
+
+  /* Figures only draw once they are near the viewport, so a check run at the
+     hero would report zero of them in every tier and prove nothing. */
+  await page.evaluate(() => document.querySelector('[data-mod="ocula"]')?.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(900);
+
   const info = await page.evaluate(() => ({
     tier: document.documentElement.dataset.tier,
     hasField: !!document.getElementById('field'),
@@ -21,8 +30,10 @@ async function tier(name, launchArgs, contextOpts) {
     heroVisible: getComputedStyle(document.querySelector('.hero__lede')).opacity,
     nameClip: getComputedStyle(document.querySelector('.hero__given')).clipPath,
     beatsActive: document.querySelectorAll('.beat[data-active]').length,
+    figuresDrawn: [...document.querySelectorAll('canvas[data-figure]')]
+      .filter((c) => c.width > 0 && c.getContext('2d')
+        .getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 8)).length,
   }));
-  await page.screenshot({ path: `${OUT}/tier-${name}.png` });
   console.log(name.padEnd(14), JSON.stringify(info), errs.length ? 'ERRORS: ' + errs.join(' | ') : 'clean');
   await b.close();
 }
