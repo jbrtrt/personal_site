@@ -76,13 +76,23 @@ for (const id of ['vivesense', 'nephra', 'stoneidx', 'ocula', 'flopcheck', 'lant
     )
     .catch(() => {});
 
+  /* Coverage alone stopped discriminating once the plates gained grain — a
+     full-rect wash scores the same as a rendered object. What proves the
+     object drew is *range*: an empty plate is one flat tone, a lit one is not.
+     Report both, and the second is the one that can fail. */
   figures.push(await page.evaluate((m) => {
     const c = document.querySelector(`canvas[data-figure="${m}"]`);
-    if (!c?.width) return { id: m, inked: 0 };
+    if (!c?.width) return { id: m, inked: 0, tones: 0 };
     const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
     let n = 0;
-    for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
-    return { id: m, inked: n };
+    const bucket = new Set();
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 8) {
+        n++;
+        bucket.add(((d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 8) | 0);
+      }
+    }
+    return { id: m, inked: n, tones: bucket.size };
   }, id));
 }
 

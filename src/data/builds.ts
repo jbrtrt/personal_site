@@ -68,6 +68,18 @@ const PANEL = MAT(0.60, 0.22, 30);          // the darker half of a ball
 const STD: Mat[] = [SHELL, TRIM, SIGNAL, METAL, ROUGH, GLASS, PANEL];
 const M = { shell: 0, trim: 1, signal: 2, metal: 3, rough: 4, glass: 5, panel: 6 };
 
+/**
+ * A raised band around a cylinder, chamfered down to meet it exactly.
+ *
+ * A plain cylinder used as a band brings its own end caps, and those caps run
+ * from the axis outward — so they intersect the body they are supposed to sit
+ * on, and the painter's sort has to pick one per face. That shows up as a torn
+ * edge. Landing the profile back on the host radius keeps the two surfaces
+ * from ever crossing.
+ */
+const bandProfile = (host: number, r: number, len: number, cham = 0.02): Array<[number, number]> =>
+  [[host, -len / 2], [r, -len / 2 + cham], [r, len / 2 - cham], [host, len / 2]];
+
 /** The house camera. Objects differ in size, so `f` does the framing. */
 const cam = (f: number, over: Partial<Cam> = {}): Cam =>
   ({ yaw: -0.62, pitch: 0.34, dist: 5.4, f, ...over });
@@ -105,8 +117,8 @@ function implant(): Mesh {
   const shell = place(lathe(capsuleProfile(0.40, 1.1, 10), 32, M.shell), { rot: [0, 0, Math.PI / 2] });
 
   // The filtration stage, called out as the only accent band on the body.
-  const band = place(lathe(cylinderProfile(0.458, 0.34), 32, M.signal), { pos: [0.12, 0, 0], rot: [0, 0, Math.PI / 2] });
-  const seam = place(lathe(cylinderProfile(0.447, 0.035), 32, M.trim), { pos: [-0.5, 0, 0], rot: [0, 0, Math.PI / 2] });
+  const band = place(lathe(bandProfile(0.4, 0.458, 0.34), 32, M.signal), { pos: [0.12, 0, 0], rot: [0, 0, Math.PI / 2] });
+  const seam = place(lathe(bandProfile(0.4, 0.44, 0.05, 0.012), 32, M.trim), { pos: [-0.5, 0, 0], rot: [0, 0, Math.PI / 2] });
 
   /* Two vascular ports. Angled apart rather than colinear — a straight tube
      through a capsule reads as a battery. */

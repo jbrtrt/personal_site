@@ -28,6 +28,18 @@ const meshFor = (id: string, plate: Plate): Mesh => {
   return m;
 };
 
+/* One scratch buffer for all seven plates — they paint one at a time, and a
+   canvas per figure would be seven more backing stores for no gain. */
+let scratchCanvas: HTMLCanvasElement | null = null;
+function scratch(w: number, h: number): CanvasRenderingContext2D | null {
+  if (!scratchCanvas) scratchCanvas = document.createElement('canvas');
+  if (scratchCanvas.width !== w || scratchCanvas.height !== h) {
+    scratchCanvas.width = w;
+    scratchCanvas.height = h;
+  }
+  return scratchCanvas.getContext('2d');
+}
+
 function label(
   ctx: CanvasRenderingContext2D, text: string, x: number, y: number,
   align: CanvasTextAlign = 'left', size = 8,
@@ -145,8 +157,29 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate) {
     seam(ctx, plate.cam, sm.centre, sm.axis, sm.r, W / 2, H / 2 + 6, `rgba(${p.deep.map((v) => v | 0).join(',')}, 0.5)`);
   }
 
+  /* Grain, confined to what has actually been drawn.
+     `overlay` deposits alpha across the whole rect, which turns the plate from
+     a window onto the page into a tinted box sitting on top of it — the field
+     stops showing through and the figure grows a visible edge. So: keep the
+     pre-grain alpha, grain the whole rect, then multiply that alpha back.
+     `destination-in` leaves RGB alone, so the texture survives on the object
+     and the empty plate goes back to being empty. */
+  const mask = scratch(canvas.width, canvas.height);
+  if (mask) {
+    mask.setTransform(1, 0, 0, 1, 0, 0);
+    mask.clearRect(0, 0, canvas.width, canvas.height);
+    mask.drawImage(canvas, 0, 0);
+  }
   grain(ctx, W, H);
+  if (mask) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(mask.canvas, 0, 0);
+    ctx.restore();
+  }
 
+  // Leaders and the designation stay off the grain, so the type stays crisp.
   for (const n of plate.notes) leader(ctx, n, plate, p);
 
   ctx.fillStyle = p.label;

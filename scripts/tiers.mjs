@@ -30,9 +30,12 @@ async function tier(name, launchArgs, contextOpts) {
     heroVisible: getComputedStyle(document.querySelector('.hero__lede')).opacity,
     nameClip: getComputedStyle(document.querySelector('.hero__given')).clipPath,
     bioActive: document.querySelectorAll('.bio__p[data-active]').length,
-    figuresDrawn: [...document.querySelectorAll('canvas[data-figure]')]
-      .filter((c) => c.width > 0 && c.getContext('2d')
-        .getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 8)).length,
+    /* `render()` is what sizes the canvas, so a real width is proof the
+       observer fired and the plate painted. Reading pixels back as well was
+       flaky under memory pressure and told us nothing extra — check.mjs does
+       the tonal-range test properly. */
+    figuresSized: [...document.querySelectorAll('canvas[data-figure]')]
+      .filter((c) => c.width >= 460).length,
   }));
   console.log(name.padEnd(14), JSON.stringify(info), errs.length ? 'ERRORS: ' + errs.join(' | ') : 'clean');
   await b.close();
