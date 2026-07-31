@@ -71,8 +71,12 @@ export function buildPotentialMap(img: HTMLImageElement, out: HTMLCanvasElement)
 
 /* Whichever of these is present in public/ wins. The photo has to be
    droppable by hand without touching code, so the filename must not be
-   a thing that can be got wrong. */
-const CANDIDATES = ['./headshot.jpg', './headshot.jpeg', './headshot.png', './headshot.webp'];
+   a thing that can be got wrong.
+
+   The extension actually shipped goes first, and index.html's src has to
+   match it: every candidate tried before the real file is a 404 in the
+   console of a page that claims to have none. */
+const CANDIDATES = ['./headshot.jpeg', './headshot.jpg', './headshot.png', './headshot.webp'];
 
 export function wirePortrait(root: ParentNode = document) {
   const img = root.querySelector<HTMLImageElement>('[data-portrait]');

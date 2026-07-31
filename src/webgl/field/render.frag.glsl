@@ -21,7 +21,8 @@ uniform float uMM;        // pixels per millimetre of chart paper
 uniform float uBoard;     // 0 = paper, 1 = circuit
 uniform float uReveal;    // global wake-up fade
 uniform float uTime;
-uniform float uDim;       // pulled down behind dense type
+uniform float uDim;       // substrate presence — pulled down behind dense type
+uniform float uWave;      // signal presence — pulled down independently
 
 varying vec2 vUv;
 
@@ -33,6 +34,7 @@ const vec3 INK        = vec3(0.090, 0.071, 0.055);
 const vec3 BOARD      = vec3(0.039, 0.063, 0.055);
 const vec3 COPPER     = vec3(0.784, 0.604, 0.306);
 const vec3 NA         = vec3(0.910, 0.690, 0.294);   // sodium
+const vec3 NA_HOT     = vec3(1.000, 0.835, 0.478);   // the front of it
 const vec3 K          = vec3(0.557, 0.435, 0.839);   // potassium
 
 float hash21(vec2 p) {
@@ -55,16 +57,30 @@ float routing(vec2 p, out float pad) {
   vec2 cell = floor(p);
   vec2 f = fract(p) - 0.5;
 
+  /* Runs are selected per row and per column, not per cell. Deciding
+     cell-by-cell gives every cell its own little horizontal, vertical and
+     diagonal stub, which tiles into a dense field of stars and diamonds —
+     busy wallpaper that looks nothing like a board and swallows the type.
+     Hashing the row index alone makes a chosen row carry one continuous
+     trace clear across the screen, which is what routing actually looks
+     like: a few long parallel runs, mostly empty substrate between them. */
+  float row = hash21(vec2(17.3, cell.y));
+  float col = hash21(vec2(cell.x, 41.7));
+  bool onRow = row < 0.30;
+  bool onCol = col < 0.30;
+
   float d = 1e9;
-  if (hash21(cell) < 0.58)              d = min(d, abs(f.y));
-  if (hash21(cell + 31.7) < 0.58)       d = min(d, abs(f.x));
-  if (hash21(cell + 11.3) < 0.22)       d = min(d, abs(abs(f.x) - abs(f.y)) * 0.7071);
+  if (onRow) d = min(d, abs(f.y));
+  if (onCol) d = min(d, abs(f.x));
 
-  float trace = 1.0 - smoothstep(0.030, 0.058, d);
+  float trace = 1.0 - smoothstep(0.024, 0.046, d);
 
+  /* A via sits where two runs actually meet — not scattered at random over
+     bare laminate, which is the other tell that nobody looked at a board. */
   float r = length(f);
-  float ring = (1.0 - smoothstep(0.108, 0.132, r)) - (1.0 - smoothstep(0.044, 0.058, r)) * 0.88;
-  pad = hash21(cell + 71.3) > 0.86 ? max(ring, 0.0) : 0.0;
+  float ring = (1.0 - smoothstep(0.10, 0.126, r))
+             - (1.0 - smoothstep(0.040, 0.055, r)) * 0.90;
+  pad = (onRow && onCol && hash21(cell + 71.3) > 0.62) ? max(ring, 0.0) : 0.0;
 
   return max(trace, pad);
 }
@@ -83,15 +99,20 @@ void main() {
      further once the whole field was quietened — at a quarter of the
      old amplitude a broad band stops reading as a wavefront at all
      and just looks like the page is dirty. */
-  float front = smoothstep(0.46, 0.80, u);
-  float tail  = smoothstep(0.12, 0.58, v) * (1.0 - front * 0.9);
+  /* Weighted hard toward `edge`. A broad excited blob reads as noise — the
+     reader cannot tell what they are looking at, only that something is
+     moving. A thin bright filament reads as a wavefront travelling, which is
+     the one thing the background is trying to say. So the body of the wave
+     stays faint and the leading edge carries it. */
+  float front = smoothstep(0.52, 0.84, u) * uWave;
+  float tail  = smoothstep(0.18, 0.62, v) * (1.0 - front * 0.9) * uWave;
 
   /* Leading edge of the wave — where the gradient is steepest.
      This is the part a real electrode actually sees. */
   vec2 t = 1.0 / uRes;
   float gx = texture2D(uField, vUv + vec2(t.x, 0.0)).r - texture2D(uField, vUv - vec2(t.x, 0.0)).r;
   float gy = texture2D(uField, vUv + vec2(0.0, t.y)).r - texture2D(uField, vUv - vec2(0.0, t.y)).r;
-  float edge = clamp(length(vec2(gx, gy)) * 5.0, 0.0, 1.0);
+  float edge = clamp(length(vec2(gx, gy)) * 5.0, 0.0, 1.0) * uWave;
 
   /* ── ground A · chart paper ───────────────────────────────── */
   float minorMask = ruling(mm, 1.0);
@@ -101,18 +122,43 @@ void main() {
      grounds are ruled at full strength and the signal on top of them runs
      at roughly a quarter of what it did, because a background that competes
      with the prose has stopped being a background. */
+  /* ── conductors ───────────────────────────────────────────────
+     Charge cannot exist in mid-air, and this is the whole reason the
+     background used to read as noise: the excitation was painted across
+     open space as a diffuse glow, so there was nothing to tell the reader
+     what they were looking at — only that something was moving.
+
+     So the routing lattice is now the *conductor*, on both grounds, and
+     the simulation only shows up where a conductor is there to carry it.
+     What you see is current running down a trace and lighting the pads it
+     passes, which is legible at a glance, confined to hairlines instead of
+     smeared over the type, and interactive: clicking injects the charge
+     that then travels. The etched board stops being scenery. */
+  float pad;
+  float tr = routing(maj, pad);
+
+  float conductor = max(tr, pad);
+  float current = front * conductor;      // charge on the wire
+  float spark   = edge  * conductor;      // its leading edge
+  float residue = tail  * conductor;      // what it leaves behind
+
+  /* ── ground A · chart paper ───────────────────────────────── */
   vec3 paper = PAPER;
   // The minor ruling is deliberately faint: at 1 mm it lands near the
   // pixel grid and a heavier weight beats itself into moiré.
   paper = mix(paper, GRID_MIN, minorMask * 0.085);
   paper = mix(paper, GRID_MAJ, majorMask * 0.30);
-  paper = mix(paper, GRID_MAJ * 0.9, tail * 0.05);          // the stain it leaves
-  paper = mix(paper, INK, front * 0.13);                    // wet ink
-  paper = mix(paper, vec3(0.55, 0.16, 0.11), edge * 0.20);  // the pen itself
+  /* Deliberately faint on this side. Charge lighting up short disconnected
+     segments of ruling reads as printing artefacts, not as signal — the
+     physician's ground is a chart, and the chart's signal is the strip along
+     the bottom. Enough tint remains for a click to visibly do something,
+     which the hero cue promises; the electrical register proper belongs to
+     the board, where it means something. */
+  paper = mix(paper, GRID_MAJ * 0.75, residue * 0.16);      // the stain it leaves
+  paper = mix(paper, vec3(0.55, 0.16, 0.11), current * 0.30);
+  paper = mix(paper, INK, spark * 0.16);
 
   /* ── ground B · circuit board ─────────────────────────────── */
-  float pad;
-  float tr = routing(maj, pad);
 
   /* Built up the way a board is: hatched ground plane, solder-mask tooth,
      then etched copper and plated vias. This is the entire circuit register
@@ -121,14 +167,13 @@ void main() {
      quiet. Etched, not energised: none of it glows until the wave arrives. */
   vec3 board = BOARD;
   float hatch = ruling(vec2(mm.x + mm.y, mm.x - mm.y) * 0.25, 0.9);
-  board += vec3(0.010, 0.017, 0.014) * hatch;                   // ground-plane hatch
-  board += vec3(0.012, 0.020, 0.016) * ruling(mm, 1.0) * 0.7;   // solder-mask tooth
-  board = mix(board, COPPER * 0.30, tr * 0.94);                 // etched routing
-  board += COPPER * pad * 0.30;                                 // plated via
-  board += COPPER * tr * front * 0.16;                          // current, driven by the tissue
-  board += NA * front * 0.04;
-  board += NA * edge * 0.22;                                     // the front stays a filament
-  board += K  * tail  * 0.06;
+  board += vec3(0.011, 0.018, 0.015) * hatch;                   // ground-plane hatch
+  board += vec3(0.013, 0.021, 0.017) * ruling(mm, 1.0) * 0.7;   // solder-mask tooth
+  board = mix(board, COPPER * 0.26, tr * 0.94);                 // etched routing, unpowered
+  board += COPPER * pad * 0.20;                                 // plated via
+  board += NA * current * 0.95;                                 // the wire carrying charge
+  board += NA_HOT * spark * 0.85;                               // the leading edge of it
+  board += K  * residue * 0.22;                                 // recovering, briefly violet
 
   /* Do NOT cross-fade the two grounds directly. A linear mix of cream
      paper and near-black board spends the middle of the transition as
@@ -151,16 +196,20 @@ void main() {
   col = mix(col, paper, pa);
   col = mix(col, board, ba);
 
-  /* Through the blackout, only the front survives. This one term is
-     deliberately *not* quietened with the rest: it is the whole reason the
-     transition routes through black, it lasts about one section, and there
-     is no prose competing with it at that moment. */
-  col += NA * edge * 1.05 * (1.0 - pa) * (1.0 - ba);
+  /* Through the blackout, only the live conductor survives — the routing
+     itself goes dark and the charge on it does not, so what crosses the
+     midpoint of the inversion is a bare circuit carrying current. Not
+     quietened with the rest: it is the whole reason the transition routes
+     through black, it lasts about one section, and there is no body copy
+     competing with it at that moment. */
+  float bare = (1.0 - pa) * (1.0 - ba);
+  col += NA * current * 0.95 * bare;
+  col += NA_HOT * spark * 1.05 * bare;
 
   /* film + vignette; kills the flat-vector look */
   float n = hash21(px + fract(uTime) * 91.7);
   col += (n - 0.5) * 0.022;
-  float vig = 1.0 - 0.30 * pow(length(vUv - 0.5) * 1.25, 2.2);
+  float vig = 1.0 - 0.16 * pow(length(vUv - 0.5) * 1.25, 2.2);
   col *= vig;
 
   col = mix(bg, col, uReveal * uDim);

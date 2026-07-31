@@ -116,7 +116,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   gsap.ticker.lagSmoothing(0);
 
   /* ── one clock for everything ─────────────────────────────── */
-  const state = { board: 0, dim: 1 };
+  const state = { board: 0, dim: 1, wave: 1 };
   let last = performance.now();
   let running = true;
 
@@ -140,6 +140,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
 
     field.board = state.board;
     field.dim = state.dim;
+    field.wave = state.wave;
     field.draw(time);
 
     if (rateEl) {
@@ -156,7 +157,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   if (import.meta.env.DEV) {
     (window as unknown as Record<string, unknown>).__bg = {
       field, trace, pointer, rhythm, state,
-      probe: () => ({ board: state.board, dim: state.dim, ...trace.debug() }),
+      probe: () => ({ board: state.board, dim: state.dim, wave: state.wave, ...trace.debug() }),
     };
   }
 
@@ -204,6 +205,13 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
 
   /* ── scroll choreography ──────────────────────────────────── */
 
+  /* Where the ink flips from dark to light, as a fraction of the inversion.
+     This is a contrast threshold, not a taste one: the ground darkens fast
+     (it is ~76% of the way into the blackout by 0.34), so flipping late
+     leaves a window of dark ink on an already-dark ground. Measured by
+     scripts/contrast.mjs, which sweeps the whole scrub. */
+  const INK_FLIP = 0.26;
+
   // Physician ground → engineer ground, scrubbed across The Gap.
   ScrollTrigger.create({
     trigger: '[data-scene="gap"]',
@@ -214,7 +222,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
       state.board = self.progress;
       // Flip the ink before the ground finishes darkening, so text is
       // already light by the time the blackout arrives.
-      root.dataset.ground = self.progress > 0.34 ? 'board' : 'paper';
+      root.dataset.ground = self.progress > INK_FLIP ? 'board' : 'paper';
       const lock = document.querySelector<HTMLElement>('[data-lock]');
       if (lock) {
         if (self.progress > 0.85) { lock.dataset.locked = '1'; lock.textContent = 'PHASE LOCKED'; }
@@ -233,7 +241,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
       state.board = 1 - self.progress;
       // Mirror of the outbound threshold: ink flips while the ground
       // is still dark, not after it has already gone pale.
-      root.dataset.ground = self.progress > 0.66 ? 'paper' : 'board';
+      root.dataset.ground = self.progress > 1 - INK_FLIP ? 'paper' : 'board';
     },
   });
 
@@ -252,9 +260,22 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
      in the shader, so lifting these lets the etched routing read without
      letting the signal back up. The hero comes down instead of sitting at
      full — quiet everywhere was the instruction, hero included. */
+  /* Substrate — the chart ruling and the circuit routing. This is the set the
+     page is standing on, so the board sections run high: the complaint was
+     that you cannot find the circuitry, and at 0.30 over near-black you
+     genuinely cannot. */
   const DIM: Record<string, number> = {
-    hero: 0.85, lead: 0.26, gap: 0.80, builds: 0.34,
-    evidence: 0.26, ledger: 0.30, contact: 0.55,
+    hero: 0.62, lead: 0.42, gap: 0.55, builds: 0.78,
+    evidence: 0.62, ledger: 0.70, contact: 0.55,
+  };
+
+  /* Signal — the wave travelling over it, scaled separately. Dense prose gets
+     a nearly still field; the hero and the inversion, which have no body copy
+     over them, keep the motion. This is what stops the wave reading as noise
+     across the screen, and it is most of the contrast fix. */
+  const WAVE: Record<string, number> = {
+    hero: 1, lead: 0.16, gap: 0.85, builds: 0.14,
+    evidence: 0.10, ledger: 0.12, contact: 0.30,
   };
   // The strip is chrome, not content: it recedes wherever prose runs over it.
   const TRACE_OP: Record<string, number> = { hero: 1, gap: 0.8, contact: 0.9 };
@@ -264,6 +285,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     const target = DIM[scene] ?? 0.35;
     const apply = () => {
       gsap.to(state, { dim: target, duration: 0.7, ease: 'power2.out' });
+      gsap.to(state, { wave: WAVE[scene] ?? 0.15, duration: 0.7, ease: 'power2.out' });
       root.style.setProperty('--trace-op', String(TRACE_OP[scene] ?? 0.3));
     };
     ScrollTrigger.create({

@@ -118,6 +118,28 @@
 
 /* ═══════════ 02 · THE GAP ═══════════════════════════════════ */
 .sec--gap { padding-block: var(--s8); text-align: center; }
+
+/* The inversion runs underneath this section, which means the background
+   behind the type passes through every tone between cream and near-black.
+   No single ink survives that, and no amount of token tuning fixes it — the
+   contrast sweep in scripts/contrast.mjs bottoms out at 1.0:1 on the small
+   text no matter what colour it is. So the column carries a scrim of the
+   live ground: feathered to nothing at the edges, so the inversion still
+   plays full-bleed around it and there is no visible panel. */
+.sec--gap .wrap--narrow { position: relative; isolation: isolate; }
+.sec--gap .wrap--narrow::before {
+  content: '';
+  position: absolute;
+  inset: -10% -8%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    var(--bg) 0%, var(--bg) 58%, transparent 80%
+  );
+  opacity: 0.9;
+  transition: background var(--dur-slow) var(--ease-in-out);
+}
 .gap__quote p {
   font-family: var(--display);
   font-variation-settings: 'opsz' 72;

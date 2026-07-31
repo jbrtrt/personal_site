@@ -15,7 +15,7 @@
   --grid-major:   rgba(196, 84, 62, 0.34);
   --ink:          #17120E;
   --ink-soft:     #4A4038;
-  --ink-faint:    #766757;
+  --ink-faint:    #6E5F50;
 
   /* ── ground B · printed circuit board ───────────────────── */
   --board:        #0A100E;
@@ -40,7 +40,7 @@
   --fg-soft:      var(--ink-soft);
   --fg-faint:     var(--ink-faint);
   --rule:         var(--paper-edge);
-  --accent:       #B4402A;
+  --accent:       #A93A24;
 
   /* The signal colours have to survive both grounds. --na and --k are the
      ion colours the tissue is drawn in and they are tuned for a dark

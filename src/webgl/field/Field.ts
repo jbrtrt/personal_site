@@ -75,7 +75,7 @@ export class Field {
       uniforms: {
         uField: { value: null }, uRes: { value: new Vector2() },
         uMM: { value: 9 }, uBoard: { value: 0 }, uReveal: { value: 0 },
-        uTime: { value: 0 }, uDim: { value: 1 },
+        uTime: { value: 0 }, uDim: { value: 1 }, uWave: { value: 1 },
       },
     });
 
@@ -236,7 +236,11 @@ export class Field {
   set board(v: number) { this.drawMat.uniforms.uBoard.value = v; }
   get board() { return this.drawMat.uniforms.uBoard.value as number; }
   set reveal(v: number) { this.drawMat.uniforms.uReveal.value = v; }
+  /** Substrate presence — chart ruling and circuit routing. */
   set dim(v: number) { this.drawMat.uniforms.uDim.value = v; }
+  /** Signal presence — the wave on top of it. Independent of the substrate,
+      so prose can be given a quiet field without erasing the board. */
+  set wave(v: number) { this.drawMat.uniforms.uWave.value = v; }
 
   dispose() {
     this.a.dispose(); this.b.dispose();

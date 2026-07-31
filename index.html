@@ -27,7 +27,7 @@
 
 <header class="rail" aria-hidden="true">
   <span class="rail__lead">LEAD II</span>
-  <span class="rail__cal">25 mm/s &middot; 10 mm/mV</span>
+  <span class="rail__cal">25 mm/s &middot; 5 mm/mV</span>
   <span class="rail__rate" data-rate>&mdash;&mdash; bpm</span>
 </header>
 
@@ -77,12 +77,13 @@
     <div class="lead__body">
       <figure class="plate">
         <div class="plate__frame">
-          <!-- Drop the photo in public/ as headshot.jpg / .jpeg / .png —
-               any of the three is picked up (see ui/portrait.ts). The path
-               is relative to the page, so it resolves under the Pages base
-               path with no code change. Absent, the frame falls back to
-               its PLATE PENDING state. -->
-          <img class="plate__img" src="./headshot.jpg" alt="Benjamin Greenfield" width="512" height="512" data-portrait />
+          <!-- Drop the photo in public/ as headshot.jpeg / .jpg / .png /
+               .webp — any of the four is picked up (see ui/portrait.ts),
+               but keep this src matching the one that is actually there or
+               the walk costs a 404 on every load. The path is relative to
+               the page, so it resolves under the Pages base path with no
+               code change. Absent, the frame falls back to PLATE PENDING. -->
+          <img class="plate__img" src="./headshot.jpeg" alt="Benjamin Greenfield" width="512" height="512" data-portrait />
           <canvas class="plate__map" aria-hidden="true" data-portrait-map></canvas>
         </div>
         <figcaption class="chrome">SPECIMEN &mdash; B.G. &middot; surface potential</figcaption>
