@@ -181,17 +181,43 @@ const smoothstep = (e0, e1, x) => {
 };
 const to255 = (c) => c.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255));
 
-// Constants lifted verbatim from render.frag.glsl.
-const PAPER = [0.969, 0.945, 0.910];
-const GRID_MIN = [0.769, 0.329, 0.243];
-const GRID_MAJ = [0.706, 0.271, 0.196];
-const INK_C = [0.090, 0.071, 0.055];
-const BOARD_C = [0.039, 0.063, 0.055];
-const COPPER_C = [0.784, 0.604, 0.306];
-const NA_C = [0.910, 0.690, 0.294];
-const K_C = [0.557, 0.435, 0.839];
-const NA_HOT_C = [1.000, 0.835, 0.478];
-const BLACKOUT = [0.018, 0.024, 0.022];
+/* Constants lifted from render.frag.glsl — and then checked against it.
+   A hand-copied palette is a silent failure waiting to happen: the shader
+   moves, this model does not, and the audit keeps passing while the live page
+   goes out of contrast. So the shader is parsed and any drift is fatal. */
+const frag = readFileSync(new URL('../src/webgl/field/render.frag.glsl', import.meta.url), 'utf8');
+
+function fromShader(name) {
+  const m = frag.match(
+    new RegExp(`const\\s+vec3\\s+${name}\\s*=\\s*vec3\\(([^)]*)\\)`),
+  );
+  if (!m) throw new Error(`contrast.mjs models ${name}, which render.frag.glsl no longer declares.`);
+  return m[1].split(',').map((v) => parseFloat(v));
+}
+
+/** Fail loudly rather than auditing a background the page does not draw. */
+function checked(name, local) {
+  const shader = fromShader(name);
+  const drift = shader.some((v, i) => Math.abs(v - local[i]) > 1e-6);
+  if (drift) {
+    throw new Error(
+      `contrast.mjs is out of date: ${name} is vec3(${shader.join(', ')}) in ` +
+      `render.frag.glsl but [${local.join(', ')}] here. Update the model, then re-run.`,
+    );
+  }
+  return local;
+}
+
+const PAPER = checked('PAPER', [0.969, 0.945, 0.910]);
+const GRID_MIN = checked('GRID_MIN', [0.769, 0.329, 0.243]);
+const GRID_MAJ = checked('GRID_MAJ', [0.706, 0.271, 0.196]);
+const INK_C = checked('INK', [0.090, 0.071, 0.055]);
+const BOARD_C = checked('BOARD', [0.039, 0.063, 0.055]);
+const COPPER_C = checked('COPPER', [0.784, 0.604, 0.306]);
+const NA_C = checked('NA', [0.910, 0.690, 0.294]);
+const K_C = checked('K', [0.557, 0.435, 0.839]);
+const NA_HOT_C = checked('NA_HOT', [1.000, 0.835, 0.478]);
+const BLACKOUT = checked('BLACKOUT', [0.018, 0.024, 0.022]);
 const PEN = [0.55, 0.16, 0.11];
 
 /**

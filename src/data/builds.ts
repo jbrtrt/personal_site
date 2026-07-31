@@ -146,14 +146,21 @@ function specimen(): Mesh {
 /* ── M4 · Ocula — the bedside hub ────────────────────────────────────────── */
 
 function hub(): Mesh {
-  const body = lathe([
-    [0, -0.34], [0.58, -0.34], [0.65, -0.27], [0.65, -0.08], [0.645, 0.06],
-    [0.62, 0.16], [0.575, 0.25], [0.5, 0.33], [0.4, 0.38], [0.28, 0.415],
-    [0.15, 0.432], [0, 0.436],
-  ], 36, M.shell);
+  /* The dome is generated rather than listed. Each lathe rung is filled with
+     one linear gradient, so a coarse profile shows Mach bands where the rungs
+     meet; sampling the curve finely is cheaper than hand-listing points and
+     removes the banding. */
+  const dome: Array<[number, number]> = [[0, -0.34], [0.58, -0.34], [0.65, -0.27]];
+  for (let i = 1; i <= 14; i++) {
+    const t = i / 14;
+    dome.push([0.65 * Math.cos((t * Math.PI) / 2) ** 0.62, -0.27 + 0.71 * Math.sin((t * Math.PI) / 2)]);
+  }
+  const body = lathe(dome, 40, M.shell);
 
-  // The consent ring: the only part that ever leaves the house.
-  const ring = place(lathe(cylinderProfile(0.706, 0.038), 36, M.signal), { pos: [0, -0.285, 0] });
+  /* The consent ring: the only part that ever leaves the house. It sits under
+     the body rather than around it — a ring that intersects the shell
+     serrates, because the painter's sort has to pick one of them per face. */
+  const ring = place(lathe(cylinderProfile(0.6, 0.045), 40, M.signal), { pos: [0, -0.368, 0] });
 
   const barrel = place(lathe(cylinderProfile(0.18, 0.12), 28, M.trim), { pos: [0, 0.03, 0.56], rot: [Math.PI / 2, 0, 0] });
   const glass = place(lathe(cylinderProfile(0.145, 0.03), 28, M.glass), { pos: [0, 0.03, 0.63], rot: [Math.PI / 2, 0, 0] });
@@ -284,12 +291,12 @@ export const PLATES: Record<string, Plate> = {
     designation: 'HUB · BEDSIDE · CONSENT-GATED',
     mats: STD,
     cam: cam(600, { yaw: -0.44, pitch: 0.26 }),
-    ground: -0.34,
+    ground: -0.385,
     shadow: 1.3,
     build: hub,
     notes: [
       { at: [0, 0.03, 0.68], text: 'CAPTURE, ON DEVICE', side: 'tr' },
-      { at: [-0.6, -0.24, 0.28], text: 'SUMMARIES LEAVE, LIFE STAYS', side: 'bl' },
+      { at: [-0.52, -0.36, 0.3], text: 'SUMMARIES LEAVE, LIFE STAYS', side: 'bl' },
     ],
   },
 

@@ -98,6 +98,24 @@
   opacity: 0;
 }
 
+/* The hero reserves 22vh for the strip chart, but on a short viewport the
+   content is taller than what is left, so `align-content: center` stops
+   applying and the cue lands on top of the trace — measured at 129px of
+   overlap at 1280x800 and 207px at 1280x700. Nothing here is optional, so the
+   type gives way rather than the clearance. Driven by height, not width: a
+   wide laptop with a short viewport is the case that broke. */
+@media (max-height: 900px) {
+  .sec--hero { padding-block: var(--s4) calc(22vh + var(--s2)); }
+  .hero__name { font-size: clamp(3.2rem, 9.5vh, 7rem); margin-bottom: var(--s2); }
+  .hero__role { margin-bottom: var(--s3); }
+  .hero__lede { font-size: var(--t-md); }
+  .chrome--top { margin-bottom: var(--s2); }
+}
+@media (max-height: 740px) {
+  .hero__lede { font-size: var(--t-base, 1rem); max-width: 26rem; }
+  .hero__name { font-size: clamp(2.6rem, 8.5vh, 5rem); }
+}
+
 .chrome--cue {
   margin-top: var(--s5);
   display: flex; gap: var(--s1); align-items: center;

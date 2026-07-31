@@ -42,89 +42,66 @@ Deploy is `.github/workflows/deploy.yml` on push. Node 22.
 
 ## 3 · Current state
 
+*Rewritten 2026-07-31. The version this replaced described the credentials
+strip, 19 visible publications and the journal-chart figures — all three are
+gone. See §10 for why, and `git log` for what they looked like.*
+
 ### Working and verified
 - Barkley excitable medium on the GPU; click depolarizes, waves collide and
   annihilate, a traced circle induces a re-entrant spiral that unlocks a hidden
-  panel in the Ledger section.
+  panel.
 - Three capability tiers — `full`, `calm` (`prefers-reduced-motion`, composes a
   still frame from the same sim), `fallback` (no WebGL2, drops canvases, serves
   the document). All three verified in-browser, zero console errors.
-- 19 publications render; email is XOR-masked and assembled on click; no phone,
-  no address, no repo links, verified by grep over `dist/`.
-- Responsive at 1440 / 1024 / 390.
+- ECG morphology measured and in range; the sinus node no longer quantises to
+  frame rate. See §5.
+- Charge lives on the routing, not the substrate: the board reads as a board
+  and the body text stays legible on the same pixels.
+- Seven **rendered object plates** — a software rasteriser (`src/ui/render3d.ts`)
+  over the mesh kit (`src/ui/mesh.ts`), one object per module. They draw in
+  every tier, including `fallback`, because they are Canvas 2D and not WebGL.
+- Publications: **7 selected shown, 12 behind a disclosure, all 19 in the DOM**.
+- Email is XOR-masked and assembled on click; no phone, no address, no repo
+  links — verified by grep over `dist/` before every push.
+- Hero clears the strip chart at every viewport height tested (1280x800,
+  1280x700, 1440x900, 390x844, 390x667) — `scripts/collide.mjs`.
 
 ### Defects — Ben's review, in his numbering
 | # | Issue | Status |
 |---|---|---|
-| 1 | Copy should read more like his draft | **Done** — credentials strip, Regeneron and Einstein beats, ViveSense sharpened and added to the Ledger, every module now leads with its verification claim, contact heading replaced |
-| 2 | Built section has no assets/objects | **Done** — seven journal figures, `src/ui/figure.ts` + `src/data/builds.ts` |
-| 3 | Background too distracting | **Done** — wave amplitude to ~¼ in the shader, hero dim 1 → 0.85 |
+| 1 | Copy should read more like his draft | **Superseded** — see §10. The page now argues a position rather than listing credentials; his specifics are all still in the prose |
+| 2 | Built section has no assets/objects | **Done** — seven rendered objects, `src/ui/render3d.ts` + `src/data/builds.ts` |
+| 3 | Background too distracting | **Done** — wave amplitude to ~¼, per-section dim/wave maps in `main.ts` |
 | 4 | ECG rhythm looks completely wrong | **Done and measured** — see §5 |
-| 5 | Doesn't relate to circuits | **Done** — ground-plane hatch, solder-mask tooth, etched routing, plated vias with annular rings; board sections lifted so the substrate reads |
+| 5 | Doesn't relate to circuits | **Done** — ground-plane hatch, solder-mask tooth, routing hashed by row/column so runs are continuous, plated vias where runs meet |
 | 6 | Headshot missing | **Done** — `public/headshot.jpeg` |
-| + | Contrast standards | **Done** — `scripts/contrast.mjs`, all gated pairs pass on both grounds |
+| + | Contrast standards | **Done** — `scripts/contrast.mjs`, all gated pairs pass on both grounds, and the shader model is now guarded against drift |
 
 ---
 
-## 4 · Approved plan
+## 4 · The plan, and what it became
 
-**1 · Copy — upgrade in place.** Same sections, headings, order. Sharper bio
-using his specifics (sodium-channel variants at Regeneron, neuropeptides and
-striatal cells at Einstein, four years as ViveSense CEO), closing on *"I run
-tests before I trust a result, in the lab or in a repo."* Add a credentials
-strip. Add ViveSense as a 2020–2024 Founder & CEO entry in the Ledger. Contact
-heading → *"Working on something in medicine or software? Say so."*
+The original approved plan (upgrade the copy in place, keep all 19 entries,
+build journal-style figures) is in `git log` — commit `81fc53e` is the last
+state that matches it. Three later rounds of direction moved the page a long
+way from it, and the plan is recorded here as *history*, not as instructions:
 
-**Built keeps its current seven** — ViveSense, NEPHRA ONE, stoneidx, Ocula
-Health, flopcheck, Lantern, notes2anki. Prose only. EchoBack and
-patent-strategy-os stay in the register line. Each module leads with its real
-verification claim:
+1. **"Make the Build figures into realistic 3d assets."** The journal charts
+   were replaced by rendered objects. Charts made arguments the prose was
+   already making better; what the prose could not do was show the thing.
+2. **"Much less like a CV and more about me / thesis"**, then **"beliefs …
+   throughout the whole website"**. The credentials strip and the leadership
+   ledger were cut, nine dated entries became three paragraphs, and every
+   module now opens on the belief it is evidence for. A `.creed` list was
+   built first and removed — quarantining the argument in one section was
+   exactly what the instruction ruled out.
+3. **"More like an industrial design portfolio than a CV."** The object now
+   leads each module, the run-on claim line and credit strip became one spec
+   table, and captions name the object instead of explaining a chart.
 
-| Module | Claim |
-|---|---|
-| ViveSense | patented at-home test · NSF SBIR Phase I · I-Corps · 40+ interviews |
-| NEPHRA ONE | descendant of the ambulatory hemofiltration work; investigational |
-| stoneidx | Charlson/Elixhauser miscalibrated where stones are rare; 4.1M encounters, three HCUP databases, pooled AUC 0.713 across 19 cohorts |
-| Ocula Health | summaries travel, raw life stays home — consent-gated by architecture |
-| flopcheck | extends US12511900B2; stress test shows monocular pose inventing metres of phantom depth, triangulation fixing it to millimetres |
-| Lantern | deterministic safety layer independent of the LLM on every utterance; 374 tests; the log names the unfinished escalation rung |
-| notes2anki | reads formatting as meaning; graded on comprehension and Bloom level; 196 offline tests; A/B across two judges (n=17) |
-
-Research section stays at all 19 entries — cutting to a curated eight is the kind
-of rewrite he ruled out.
-
-**2 · Build assets — technical figures, explicitly NOT circuits.** He was
-specific: the Build assets must be *completely unrelated to the electrical/circuit
-theme*. Register is **journal figures** — axes, ticks, units, numbered caption,
-nothing glowing, nothing carrying current.
-
-| Module | Figure |
-|---|---|
-| ViveSense | agreement plot vs reference method, limits of agreement |
-| NEPHRA ONE | solute clearance over time — continuous vs three sessions a week |
-| stoneidx | forest plot, 19 cohorts, pooled AUC 0.713 marked |
-| Ocula Health | 8,758 hours as a year-bar: what leaves, what stays home |
-| flopcheck | pose skeleton with impulse vectors and feasible-envelope band |
-| Lantern | escalation ladder over time, deterministic gate on every utterance |
-| notes2anki | A/B bake-off — two judges, n=17, win rates |
-
-Canvas 2D, one data-driven renderer + a spec per figure. `IntersectionObserver`
-so only visible ones draw; static under reduced motion; `aria-hidden` because
-every number is already in the adjacent prose.
-New: `src/ui/figure.ts`, `src/data/builds.ts`.
-
-**3 · Quiet the background.** Everywhere, hero included. Wave amplitude to
-roughly a quarter, slower, wider pacemaker interval so fewer waves are alive.
-Raise PCB substrate presence at low contrast — etched texture, not plasma. That
-is also the whole of the fix for #5; the circuit language lives in the substrate
-and nowhere else.
-
-**Contrast.** Script it, don't eyeball it. WCAG 2.1 ratios for every fg/bg pair
-in use, on both grounds, against 4.5:1 body / 3:1 large + UI. Fix by lifting
-token values, not by enlarging type to dodge the threshold. Keep the script in
-the repo. New: `scripts/contrast.mjs`.
-
----
+**What did not change, and must not:** no fabricated data; every number in the
+prose is attributable; all 19 publications stay in the DOM; the ECG stays a
+real instrument; contrast stays gated.
 
 ## 5 · ECG — diagnosis, work done, and what is still wrong
 
@@ -374,7 +351,7 @@ the address is assembled at runtime and must never appear in the bundle.
 | Contact email | `jgreen40@tufts.edu`, XOR-masked, click to reveal then copy |
 | Built lineup | The current seven; EchoBack + patent-strategy-os stay in the register |
 | Background | Quiet everywhere, hero included |
-| Build assets | Technical figures — explicitly not circuits |
+| Build assets | ~~Technical figures~~ → **rendered objects**, superseded 2026-07-31 (§4) — still explicitly not circuits |
 | Repo visual assets | Permitted, but art direction must be original |
 | Hosting | Public repo, Pages via GitHub Actions |
 
@@ -398,26 +375,30 @@ prose, so no fact was lost with it.
 
 ## 11 · Open — what the next session should pick up
 
-**1 · Fig. 3 needs the 19 per-cohort AUCs.** This is the only genuinely
-outstanding item. `src/data/builds.ts` → `stoneidx.spec.cohorts` is an empty
-array, and the renderer draws the rows the moment it is populated with
-`{ label, est, lo, hi }` entries. It was left empty on purpose: a forest plot of
-19 invented cohorts, on the site of someone whose closing line is *"I run tests
-before I trust a result"*, is the single most expensive thing that could have
-been put on the page. The caption says so out loud.
+**1 · ~~Fig. 3 needs the 19 per-cohort AUCs.~~ Closed by the plate rebuild.**
+The chart figures are gone, so there is no longer an empty `cohorts` array
+waiting on data — and no figure on the page reports a result at all. An object
+drawing cannot overstate a finding because it does not claim one, which is a
+stronger version of the same honesty position rather than a retreat from it.
+Every number that was in a caption is in the prose or the spec table, where it
+is attributable. If per-cohort AUCs ever arrive they belong in the prose or a
+new figure, not in a resurrected `builds.ts` — the old chart renderer is in
+`git show 979d7a6^:src/ui/figure.ts`.
 
-The same principle governs Figs. 1, 5 and 6, which are stamped **SCHEMATIC**
-because they draw a criterion, a method and an architecture rather than
-observations. Fig. 2 is integrated single-pool urea kinetics — real arithmetic,
-recomputed at module load. Fig. 4 is a year, to scale.
+The **SCHEMATIC** stamp went with them. Nothing on the page now needs it: the
+plates are objects, and the captions say "concept form" where the object is a
+concept.
 
-**2 · Two numbers Ben should confirm.**
-- The §4 plan said stoneidx used *three* HCUP databases; the module's meta line
-  names *four* (NIS / NEDS / NASS / NRD). The meta line was left as-is because
-  it is more specific and was already reviewed. One of the two is wrong.
-- The CV lists the impact-detection patent as publication `US20230222795A1`,
-  while the site cites grant `US12511900B2`. Both are plausible for the same
-  family at different stages; worth a glance.
+**2 · Two numbers Ben should confirm. Still open — asked twice, unanswered.**
+Neither blocks anything; both are cheap for him and expensive for anyone else
+to resolve, because only he knows which source is right.
+- **HCUP database count.** The original plan said stoneidx used *three*
+  databases; the site says *four* (NIS / NEDS / NASS / NRD), now in the M3 spec
+  table under `DATA`. The more specific one was kept. One of the two is wrong.
+- **Patent number for the impact-detection work.** The CV lists publication
+  `US20230222795A1`; the site cites grant `US12511900B2`, now in the M5 spec
+  table under `PATENT`. Both are plausible for the same family at different
+  stages, but they are not interchangeable in print.
 
 **3 · Only the ECG rate was held at 60 bpm.** The §4 plan asked for a *wider*
 pacemaker interval to reduce how many waves are alive at once. That conflicts
