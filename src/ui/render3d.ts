@@ -25,6 +25,10 @@ export interface Palette {
   deep: RGB;
   pale: RGB;
   accent: RGB;
+  /** The page's own two inks, unordered — the line stage draws in these, so it
+      inverts with the ground rather than with the value ramp. */
+  sheet: RGB;
+  pen: RGB;
   /** For plate furniture — rules, leaders, labels. */
   line: string;
   label: string;
@@ -83,6 +87,16 @@ export function palette(el: Element): Palette {
     deep: mix(ink, paper, 0.06),
     pale: mix(paper, ink, 0.05),
     accent,
+    /* Lifted off the page rather than set to it. `--bg` on the board ground is
+       near-black, but what is actually behind these canvases is the field, which
+       renders a good deal lighter — so a fill of exact `--bg` punched a hole in
+       the page wherever the drawing had a smooth surface with no creases to
+       break it up. A sphere is the worst case and the figures' heads showed it.
+       At 12% the fill sits close to what surrounds it on the dark ground and
+       reads as a light tone on the pale one, which is what a shaded line drawing
+       does anyway. */
+    sheet: mix(bg, fg, 0.12),
+    pen: fg,
     line: s.getPropertyValue('--fg-faint').trim() || css(mix(ink, paper, 0.45)),
     label: s.getPropertyValue('--fg-faint').trim() || css(mix(ink, paper, 0.35)),
   };
@@ -160,9 +174,18 @@ const KEY: V3 = norm([-0.52, 0.74, 0.62]);
 const FILL: V3 = norm([0.68, 0.18, 0.42]);
 const AMB = 0.20;
 
-function shade(n: V3, v: V3, m: Mat): number {
+function shade(n: V3, v: V3, m: Mat, matte = false): number {
   const lam = Math.max(dot(n, KEY), 0);
   const fil = Math.max(dot(n, FILL), 0);
+
+  /* Clay is a grey model, and a grey model is defined by what it has *not* got:
+     no highlight, no rim, no second light, and a value range squeezed into the
+     middle so nothing reaches either end. Those terms are most of what makes the
+     finished render read as a *material* rather than as a shape, and dropping
+     them leaves the stage almost flat — which is the point of it. The lit and
+     unlit sides of a form stay about a third of the ramp apart, enough to tell
+     them apart and not enough to model with. */
+  if (matte) return 0.44 + 0.4 * lam;
 
   const len = Math.hypot(v[0], v[1], v[2]) || 1;
   const eye: V3 = [-v[0] / len, -v[1] / len, -v[2] / len];
@@ -253,15 +276,23 @@ interface Ready {
 /**
  * How resolved the drawing is.
  *
- * `flat` and `clay` are the two study stages on every plate, and they are both
- * *subtractive* — they take work away rather than adding a second pipeline.
- * `flat` skips the per-vertex gradient, which is the expensive path, so it also
- * doubles as the reduced-quality pass while a plate is being dragged.
+ * The three board stages are `line`, `clay` and `render`, and they had to become
+ * *categorically* different rather than parametrically different. The first
+ * attempt separated them by shading model alone — faceted, then matte, then
+ * finished — and at study size, which is about 140 CSS pixels wide, all three
+ * came out as the same picture. A 40-segment lathe does not read as faceted at
+ * that scale, and a clay pass over an object that is mostly one neutral shell is
+ * the finished render with the accent taken out. What survives at 140px is a
+ * change of *medium*: outlines, then a grey model, then the object.
+ *
+ * `flat` is not a board stage. It is the reduced-quality pass used while a plate
+ * is being dragged, and it stays close to the finished render on purpose — the
+ * frame it replaces should not visibly jump.
  */
-export type Treatment = 'flat' | 'clay' | 'render';
+export type Treatment = 'line' | 'flat' | 'clay' | 'render';
 
 /** One neutral body, standing in for the whole material list at the clay stage. */
-const CLAY: Mat = { tone: 0.82, spec: 0.06, gloss: 18 };
+const CLAY: Mat = { tone: 0.86, spec: 0, gloss: 1 };
 
 export interface Scene {
   mesh: Mesh;
@@ -285,11 +316,15 @@ export function renderScene(
   const { mesh, cam } = scene;
   const treatment = scene.treatment ?? 'render';
 
+  if (treatment === 'line') { lineScene(ctx, scene, p, cx, cy); return; }
+
   /* Clay swaps the whole material list for one neutral body: no accent, no
-     glass, nothing that carries meaning. It is the grey model stage, where the
-     only thing under discussion is form. */
-  const mats = treatment === 'clay' ? [CLAY] : scene.mats;
-  const matFor = (i: number) => (treatment === 'clay' ? CLAY : mats[i] ?? mats[0]);
+     glass, nothing that carries meaning. Glass in particular goes solid — a
+     grey model is a solid, and a transparent one would be reporting a material
+     at the stage that is meant to be silent about material. */
+  const matte = treatment === 'clay';
+  const mats = matte ? [CLAY] : scene.mats;
+  const matFor = (i: number) => (matte ? CLAY : mats[i] ?? mats[0]);
 
   if (scene.shadow) contactShadow(ctx, scene, p, cx, cy);
 
@@ -312,13 +347,13 @@ export function renderScene(
        far wall shows through it. */
     if ((m.alpha ?? 1) >= 1 && dot(fn, c) > 0) continue;
 
-    /* At the blocked stage the vertex normals are ignored on purpose — one
-       tone per polygon is what makes facets visible, and it is also what makes
-       this pass cheap enough to run while the plate is being dragged. */
+    /* The drag pass ignores vertex normals: fitting a gradient plane per face
+       is the single most expensive thing in this loop, and one tone per
+       polygon is what makes the frame budget. */
     const vn = treatment === 'flat' ? undefined : poly.vn?.map((n) => rotate(n, cam));
     queue.push({
       pts: view.map((v) => project(v, cam, cx, cy)),
-      vals: view.map((v, i) => shade(vn ? vn[i] : fn, v, m)),
+      vals: view.map((v, i) => shade(vn ? vn[i] : fn, v, m, matte)),
       z: c[2],
       m,
     });
@@ -332,9 +367,6 @@ export function renderScene(
     r.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
     ctx.closePath();
 
-    /* One flat fill per face at the blocked stage. Fitting a gradient plane is
-       the single most expensive thing in this loop, so skipping it is both the
-       look and the frame budget. */
     const paint = treatment === 'flat'
       ? css(toneOf(r.vals.reduce((s, v) => s + v, 0) / r.vals.length, r.m, p))
       : gradientFor(ctx, r.pts, r.vals, r.m, p);
@@ -356,6 +388,156 @@ export function renderScene(
     }
   }
   ctx.globalAlpha = 1;
+}
+
+/* ── the line stage ──────────────────────────────────────────────────────── */
+
+/** Past this dihedral, the fold between two faces is an edge of the object. */
+const CREASE = Math.cos(0.36);   // ≈21°
+
+interface EdgeRec {
+  a: V3;
+  b: V3;
+  f0: number;
+  /** −1 when nothing sits on the other side — an open edge of the surface. */
+  f1: number;
+}
+
+interface EdgeSet { recs: EdgeRec[]; fn: V3[] }
+
+const EDGES = new WeakMap<Poly[], EdgeSet>();
+
+/**
+ * Edge adjacency and face normals, built once per mesh and cached against it.
+ *
+ * Vertices are matched by rounded coordinate rather than by index, because
+ * there is no index to match on: the kit composes objects out of independent
+ * primitives and `merge()` only concatenates their polygon lists, so two faces
+ * that meet along an edge hold two separate copies of its endpoints.
+ */
+function edgesOf(mesh: Mesh): EdgeSet {
+  const hit = EDGES.get(mesh);
+  if (hit) return hit;
+
+  const fn = mesh.map((poly) => faceNormal(poly));
+  const map = new Map<string, EdgeRec>();
+  const key = (p: V3) => `${p[0].toFixed(3)}_${p[1].toFixed(3)}_${p[2].toFixed(3)}`;
+
+  mesh.forEach((poly, i) => {
+    for (let j = 0; j < poly.v.length; j++) {
+      const a = poly.v[j];
+      const b = poly.v[(j + 1) % poly.v.length];
+      const ka = key(a), kb = key(b);
+      const rec = map.get(ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`);
+      if (rec) { if (rec.f1 < 0) rec.f1 = i; }
+      else map.set(ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`, { a, b, f0: i, f1: -1 });
+    }
+  });
+
+  const set: EdgeSet = { recs: [...map.values()], fn };
+  EDGES.set(mesh, set);
+  return set;
+}
+
+/**
+ * A hidden-line drawing of the same object — the first stage on every board.
+ *
+ * Painter's algorithm gives the hard half of this away: fill every face with the
+ * page's own ground, back to front, and each fill erases whatever lines were
+ * behind it. Hidden-line removal, with no depth buffer and no extra pass.
+ *
+ * So the only real work is deciding which edges are edges. Three kinds qualify —
+ * the silhouette, where one face turns toward the camera and its neighbour away;
+ * creases, where the surface genuinely folds; and open boundaries, where a
+ * surface simply stops. Interior tessellation is left undrawn, and that is what
+ * separates this from a wireframe: a 40-segment lathe drawn wire would arrive as
+ * a hairball, and the two stages after it would look better by comparison for
+ * the wrong reason.
+ *
+ * Each surviving edge is stroked immediately after the *nearer* of its two
+ * faces, so anything drawn later covers it, exactly as it covers the fills.
+ */
+function lineScene(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  p: Palette,
+  cx: number,
+  cy: number,
+) {
+  const { mesh, cam } = scene;
+  const { recs, fn } = edgesOf(mesh);
+
+  const z = new Float64Array(mesh.length);
+  const front = new Uint8Array(mesh.length);
+  /* Glass is the one material a line drawing can still say something about, and
+     it says it by not hiding anything: a see-through face contributes its
+     outline but no fill, so the contents of a cell are drawn through its wall.
+     Filling it would put a solid black column where the sample is. */
+  const solid = new Uint8Array(mesh.length);
+  const pts: Array<Array<[number, number]>> = new Array(mesh.length);
+
+  mesh.forEach((poly, i) => {
+    const view = poly.v.map((v) => toView(v, cam));
+    let ccx = 0, ccy = 0, ccz = 0;
+    for (const v of view) { ccx += v[0]; ccy += v[1]; ccz += v[2]; }
+    const k = 1 / view.length;
+    const c: V3 = [ccx * k, ccy * k, ccz * k];
+    z[i] = c[2];
+    front[i] = dot(rotate(fn[i], cam), c) < 0 ? 1 : 0;
+    solid[i] = ((scene.mats[poly.m] ?? scene.mats[0])?.alpha ?? 1) >= 1 ? 1 : 0;
+    pts[i] = view.map((v) => project(v, cam, cx, cy));
+  });
+
+  /* Backfaces are drawn rather than culled. Several of these objects are open
+     surfaces — a band is a tube with no caps — and culling turns an open tube
+     into a shape you can see through, which is a different object. */
+  const hard: number[][] = mesh.map(() => []);
+  const soft: number[][] = mesh.map(() => []);
+  for (let e = 0; e < recs.length; e++) {
+    const r = recs[e];
+    const open = r.f1 < 0;
+    const edge = open || front[r.f0] !== front[r.f1];
+    if (!edge && dot(fn[r.f0], fn[r.f1]) >= CREASE) continue;
+    (edge ? hard : soft)[open || z[r.f0] >= z[r.f1] ? r.f0 : r.f1].push(e);
+  }
+
+  const order = Array.from(mesh, (_, i) => i).sort((a, b) => z[a] - z[b]);
+
+  const sheet = css(p.sheet);
+  const pen = p.pen.map((n) => n | 0).join(',');
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (const i of order) {
+    if (solid[i]) {
+      ctx.beginPath();
+      pts[i].forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fillStyle = sheet;
+      ctx.fill();
+      /* Canvas antialiases the fill against what is behind it, leaving a
+         hairline along every shared edge — the tessellation showing through the
+         very thing meant to hide it. Stroking each fill covers it. */
+      ctx.strokeStyle = sheet;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Silhouette and open boundary carry the form; creases only describe it.
+    for (const [list, width, alpha] of [[hard[i], 1.15, 0.82], [soft[i], 0.75, 0.42]] as const) {
+      if (!list.length) continue;
+      ctx.strokeStyle = `rgba(${pen}, ${alpha})`;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      for (const e of list) {
+        const [ax, ay] = project(toView(recs[e].a, cam), cam, cx, cy);
+        const [bx, by] = project(toView(recs[e].b, cam), cam, cx, cy);
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+      }
+      ctx.stroke();
+    }
+  }
 }
 
 /**

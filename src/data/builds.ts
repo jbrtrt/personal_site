@@ -92,31 +92,47 @@ const cam = (f: number, over: Partial<Cam> = {}): Cam =>
 
 /* ── M1 · ViveSense — the countertop dock and its clip-on optic ──────────── */
 
+/**
+ * A dock with a slide bay, and an optic on a stem looking down into it.
+ *
+ * The first version laid the optical module on its side at one end of a wide
+ * flat dock, and it read as a sled with a cannon on it: the barrel pointed
+ * along the counter at nothing, the consumable floated unattached, and the
+ * whole thing was too low and too long to be an appliance. What fixes it is
+ * putting the optical path where the object's own logic puts it — vertical,
+ * above the bay, with daylight between the lens and the slide. A reader is
+ * legible the moment you can see what it is looking at.
+ */
 function optic(): Mesh {
   // Countertop language: low, soft-cornered, nothing that looks like a bench.
-  const dock = bevelBox(1.9, 0.36, 1.12, 0.13, M.shell);
-
-  const readout = place(extrude(roundedRect(0.52, 0.36, 0.06), 0.02, M.trim), { pos: [-0.55, 0.19, 0] });
-
-  // The optical module sits *on* the dock — abutting, never sunk into it.
-  const head = place(bevelBox(0.72, 0.44, 0.62, 0.09, M.shell), { pos: [0.38, 0.4, 0] });
-  const barrel = place(lathe(cylinderProfile(0.15, 0.15), 24, M.metal), { pos: [0.38, 0.4, 0.385], rot: [Math.PI / 2, 0, 0] });
-  const lens = place(lathe(cylinderProfile(0.115, 0.03), 24, M.signal), { pos: [0.38, 0.4, 0.47], rot: [Math.PI / 2, 0, 0] });
-
-  /* The clip is what makes it a clip-on rather than a box: an arch landing on
-     the dock's top face at both ends. */
-  const clip = place(sweepArc(0.25, 0.032, 0.02 * Math.PI, 0.98 * Math.PI, 22, 8, M.metal), { pos: [-0.02, 0.19, 0] });
-
-  // The consumable, entering the module's left face.
-  const slide = place(extrude(roundedRect(0.66, 0.3, 0.05), 0.05, M.shell), { pos: [-0.33, 0.4, 0] });
-  const window_ = place(extrude(roundedRect(0.17, 0.16, 0.03), 0.06, M.signal), { pos: [-0.52, 0.4, 0] });
-
-  const feet = [-0.7, 0.7].flatMap((x) =>
-    [-0.36, 0.36].map((z) =>
-      place(lathe(cylinderProfile(0.07, 0.07), 12, M.trim), { pos: [x, -0.21, z] })),
+  const dock = place(bevelBox(1.3, 0.3, 0.82, 0.06, M.shell), { pos: [0, 0.15, 0] });
+  const feet = [-0.5, 0.5].flatMap((x) =>
+    [-0.29, 0.29].map((z) =>
+      place(lathe(cylinderProfile(0.06, 0.05), 12, M.trim), { pos: [x, -0.025, z] })),
   );
 
-  return merge(dock, readout, head, barrel, lens, clip, slide, window_, ...feet);
+  // The bay the consumable lands in, and the small readout beside it.
+  const bay = place(extrude(roundedRect(0.86, 0.26, 0.05), 0.02, M.trim), { pos: [0, 0.31, 0.2] });
+  const readout = place(extrude(roundedRect(0.3, 0.2, 0.04), 0.02, M.trim), { pos: [-0.45, 0.31, -0.06] });
+
+  /* The consumable, seated in the bay and overhanging the front edge — it has
+     to be the part a hand can obviously take hold of. */
+  const slide = place(extrude(roundedRect(0.28, 0.72, 0.04), 0.045, M.shell), { pos: [0, 0.3425, 0.3] });
+  const window_ = place(extrude(roundedRect(0.13, 0.13, 0.03), 0.018, M.signal), { pos: [0, 0.374, 0.5] });
+
+  // The stem, its clamp collar, and the arm the optic hangs from.
+  const stem = place(lathe(cylinderProfile(0.075, 0.58), 16, M.shell), { pos: [0, 0.59, -0.26] });
+  const collar = place(lathe(bandProfile(0.075, 0.108, 0.11), 20, M.metal), { pos: [0, 0.72, -0.26] });
+  const arm = place(bevelBox(0.2, 0.14, 0.62, 0.045, M.shell), { pos: [0, 0.95, -0.02] });
+
+  /* The optic is a separate body on a metal joint — that is the whole of
+     'clip-on'. It comes off; the dock stays on the counter. */
+  const joint = place(bevelBox(0.3, 0.025, 0.28, 0.008, M.metal), { pos: [0, 0.8675, 0.2] });
+  const head = place(bevelBox(0.44, 0.235, 0.4, 0.05, M.shell), { pos: [0, 0.7375, 0.2] });
+  const barrel = place(lathe(cylinderProfile(0.12, 0.14), 20, M.metal), { pos: [0, 0.55, 0.2] });
+  const lens = place(lathe(cylinderProfile(0.095, 0.03), 20, M.signal), { pos: [0, 0.465, 0.2] });
+
+  return merge(dock, bay, readout, slide, window_, stem, collar, arm, joint, head, barrel, lens, ...feet);
 }
 
 /* ── M2 · NEPHRA ONE — the implant, unchanged ────────────────────────────── */
@@ -145,41 +161,86 @@ function implant(): Mesh {
   return merge(shell, band, seam, ...ports, ...cuffs);
 }
 
-/* ── M3 · Microplastics — a glass of water, particles suspended ──────────── */
+/* ── M3 · Microplastics — the reader, and the cell in its path ───────────── */
 
-function tumbler(): Mesh {
-  /* Slightly flared, thick-based: a drinking glass, not laboratory ware. The
-     whole point of this plate is that the sample is ordinary. */
-  const glass = lathe([
-    [0, -0.52], [0.36, -0.52], [0.38, -0.46], [0.365, -0.3],
-    [0.385, 0.0], [0.41, 0.3], [0.43, 0.54],
-  ], 40, M.glass);
+/**
+ * A sample cell standing between a source and a detector.
+ *
+ * This was a drinking glass with particles in it, on the argument that the
+ * sample is the ordinary part. The argument was sound and the drawing was not:
+ * a tumbler of water reads as a drink, the module's own spec table says the
+ * form is a reader and a sample cell, and the plate showed neither. A square
+ * cell is the one shape that cannot be mistaken for glassware, and putting it
+ * in an optical path says what the hardware is without claiming a result for it.
+ */
+function sampleCell(): Mesh {
+  const base = place(bevelBox(1.4, 0.24, 0.62, 0.05, M.shell), { pos: [0, 0.12, 0] });
+  const feet = [-0.55, 0.55].flatMap((x) =>
+    [-0.2, 0.2].map((z) =>
+      place(lathe(cylinderProfile(0.055, 0.045), 12, M.trim), { pos: [x, -0.0225, z] })),
+  );
 
-  // Held clear of the glass wall at every height, so the two never cross.
-  const water = lathe([
-    [0, -0.44], [0.325, -0.44], [0.34, -0.1], [0.36, 0.22], [0, 0.22],
-  ], 40, M.water);
+  /* Two pillars carry the optics; the cell drops into the well between them.
+     Slimmer than the span they bridge — heavier and they read as bookends with
+     something standing between them rather than as an instrument. */
+  const walls = [-0.55, 0.55].map((x) =>
+    place(bevelBox(0.16, 0.5, 0.32, 0.04, M.shell), { pos: [x, 0.49, 0] }));
+  const well = place(extrude(roundedRect(0.52, 0.52, 0.05), 0.06, M.trim), { pos: [0, 0.27, 0] });
+
+  /* Reversed outlines. `extrude` winds inward by default — see the note on it —
+     which means the backface test drops the wall *nearest* the camera and keeps
+     the far one. For everything else on these plates that is invisible and
+     useful, but this is the one solid with something inside it, and a missing
+     near wall stops hiding the particles: they show through an opaque cell at
+     the clay stage. Reversing the outline flips every polygon the extrude emits,
+     so this cell alone gets true outward normals. */
+  const cell = place(extrude([...roundedRect(0.4, 0.4, 0.05, 2)].reverse(), 0.74, M.glass), { pos: [0, 0.67, 0] });
+  // Held clear of the cell wall on every side, so the two surfaces never cross.
+  const water = place(extrude([...roundedRect(0.32, 0.32, 0.04, 2)].reverse(), 0.56, M.water), { pos: [0, 0.62, 0] });
 
   /* Deterministic scatter: these must be the same particles after a ground
-     inversion repaints them, and the same ones at every angle of rotation. */
+     inversion repaints them, and the same ones at every angle of rotation.
+
+     A tight plume in the path rather than a scatter through the whole volume.
+     Two reasons, and they agree: particles in the beam are the composition, and
+     a wide cloud leaks through the painter's sort. The cell wall is one quad and
+     sorts on its own centroid, which sits 0.2 from the axis along ±x and ±z —
+     but the nearest point of a square cell is a *corner*, so a mote out near
+     that corner beats the flat wall's centroid and draws in front of it. Pitch
+     compounds it by mixing height into depth. Held inside 0.06 and level with
+     the wall's mid-height, every mote sorts behind the wall that encloses it,
+     which is what the clay stage needs — there the cell is opaque. */
   let h = 20260731;
   const rand = () => { h = (h * 1103515245 + 12345) % 2147483648; return h / 2147483648; };
-  const motes = Array.from({ length: 22 }, () => {
+  const motes = Array.from({ length: 18 }, () => {
     const a = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand()) * 0.28;
-    return place(sphere(0.012 + rand() * 0.011, 1, M.signal), {
-      pos: [Math.cos(a) * r, -0.4 + rand() * 0.58, Math.sin(a) * r],
+    const r = Math.sqrt(rand()) * 0.06;
+    return place(sphere(0.011 + rand() * 0.009, 1, M.signal), {
+      pos: [Math.cos(a) * r, 0.5 + rand() * 0.2, Math.sin(a) * r],
     });
   });
 
-  return merge(glass, water, ...motes);
+  /* Source on one side, detector on the other. The lit face is the source; the
+     detector reads dark, which is the only thing distinguishing them. */
+  const optics = [-1, 1].flatMap((s) => [
+    place(lathe(cylinderProfile(0.09, 0.2), 20, M.metal), { pos: [s * 0.37, 0.63, 0], rot: [0, 0, Math.PI / 2] }),
+    place(lathe(cylinderProfile(0.07, 0.03), 20, s < 0 ? M.signal : M.trim), {
+      pos: [s * 0.255, 0.63, 0], rot: [0, 0, Math.PI / 2],
+    }),
+  ]);
+
+  return merge(base, ...walls, well, cell, water, ...motes, ...optics, ...feet);
 }
+
+/** The path itself — drawn, because a beam is not a solid. */
+const BEAM: V3[] = [[-0.235, 0.63, 0], [0.235, 0.63, 0]];
 
 /* ── M4 · Ocula — the ambulatory recorder ────────────────────────────────── */
 
 function recorder(): Mesh {
   const body = bevelBox(1.05, 0.17, 0.66, 0.05, M.shell);
-  const screen = place(extrude(roundedRect(0.76, 0.4, 0.04), 0.02, M.trim), { pos: [0, 0.085, 0.02] });
+  // Body's top face is 0.085; the screen lands on it rather than sinking into it.
+  const screen = place(extrude(roundedRect(0.76, 0.4, 0.04), 0.02, M.trim), { pos: [0, 0.095, 0.02] });
   const key = place(lathe(cylinderProfile(0.05, 0.03), 16, M.metal), { pos: [0.42, 0.1, -0.2] });
 
   /* Leads leaving one edge. The arc is authored in XY, so it is rotated into
@@ -397,13 +458,13 @@ export const PLATES: Record<string, Plate> = {
     n: 1,
     designation: 'OPTIC · CLIP-ON · COUNTERTOP DOCK',
     mats: STD,
-    cam: cam(1120, { yaw: -0.66, pitch: 0.34 }),
-    ground: -0.19,
+    cam: cam(1120, { yaw: -0.66, pitch: 0.32 }),
+    ground: -0.05,
     shadow: 1.5,
     build: optic,
     notes: [
-      { at: [0.38, 0.4, 0.49], text: 'OPTICAL PATH', side: 'tr' },
-      { at: [-0.6, 0.4, 0], text: 'SAMPLE SLIDE', side: 'bl' },
+      { at: [0, 0.46, 0.2], text: 'OPTICAL PATH', side: 'tr' },
+      { at: [0, 0.37, 0.58], text: 'SAMPLE SLIDE', side: 'bl' },
     ],
   },
 
@@ -423,15 +484,17 @@ export const PLATES: Record<string, Plate> = {
 
   microplastics: {
     n: 3,
-    designation: 'SAMPLE · DRINKING WATER · PARTICULATE',
+    designation: 'READER · SAMPLE CELL · SUSPENDED PARTICULATE',
     mats: STD,
-    cam: cam(1000, { yaw: -0.5, pitch: 0.16, oy: 8 }),
-    ground: -0.52,
-    shadow: 0.95,
-    build: tumbler,
+    cam: cam(1000, { yaw: -0.5, pitch: 0.2 }),
+    ground: -0.045,
+    shadow: 1.5,
+    glow: { at: [0, 0.63, 0], r: 0.55 },
+    build: sampleCell,
+    strokes: [{ points: BEAM, accent: true, width: 2.2 }],
     notes: [
-      { at: [0.1, 0.05, 0.22], text: 'PARTICULATE LOAD', side: 'tr' },
-      { at: [-0.3, -0.42, 0.16], text: 'ANY POURED SAMPLE', side: 'bl' },
+      { at: [0.04, 0.7, 0.04], text: 'PARTICULATE LOAD', side: 'tr' },
+      { at: [-0.3, 0.63, 0], text: 'SOURCE AND DETECTOR', side: 'bl' },
     ],
   },
 

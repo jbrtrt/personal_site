@@ -37,11 +37,18 @@ interface View {
   cy: number;
   /** Baseline for this view's caption. */
   ly: number;
+  /**
+   * Longer lens, further back. Focal length and distance scale together, so the
+   * object holds its size on the plate and loses its perspective — at ×4 the
+   * projection is orthographic in everything but name. It is the other half of
+   * flattening the clay stage: shading says matte, projection says drawing.
+   */
+  lens?: number;
 }
 
 const VIEWS: View[] = [
-  { treatment: 'flat',   label: '01 BLOCKED',  cx: 118, cy: 72,  ly: 134 },
-  { treatment: 'clay',   label: '02 CLAY',     cx: 342, cy: 72,  ly: 134 },
+  { treatment: 'line',   label: '01 LINE',     cx: 116, cy: 74,  ly: 136 },
+  { treatment: 'clay',   label: '02 CLAY',     cx: 344, cy: 74,  ly: 136, lens: 4 },
   { treatment: 'render', label: '03 RENDERED', cx: 230, cy: 232, ly: 322 },
 ];
 
@@ -162,9 +169,9 @@ const ANGLE = new Map<string, { yaw: number; pitch: number }>();
 
 /* Each view's usable area, inset from the board edges and clear of the
    captions. Objects are fitted to these rather than to the whole canvas. */
-const BAND = { hero: { w: 396, h: 138 }, study: { w: 184, h: 90 } };
+const BAND = { hero: { w: 396, h: 138 }, study: { w: 198, h: 100 } };
 
-interface Fit { f: number; ox: number; oy: number; kStudy: number }
+interface Fit { f: number; ox: number; oy: number }
 const FITS = new Map<string, Fit>();
 
 /**
@@ -175,15 +182,19 @@ const FITS = new Map<string, Fit>();
  * different direction, none of them re-derivable. Measuring the projection
  * instead makes framing a property of the object.
  *
- * Fitted once, at the *authored* angle: a fit that tracked rotation would make
- * the object breathe as it turned.
+ * Fitted once per view, at the *authored* angle: a fit that tracked rotation
+ * would make the object breathe as it turned. Per view rather than per object
+ * because the clay stage looks through a longer lens, and a near-orthographic
+ * projection of the same mesh has both a different extent and a different
+ * centre — sharing one fit leaves that study off its own axis.
  */
-function fitFor(id: string, plate: Plate, mesh: Mesh): Fit {
-  const hit = FITS.get(id);
+function fitFor(id: string, plate: Plate, mesh: Mesh, v: View): Fit {
+  const key = `${id}:${v.label}`;
+  const hit = FITS.get(key);
   if (hit) return hit;
 
   // Project at a reference focal length; everything below is a ratio.
-  const probe: Cam = { ...plate.cam, f: 1000, ox: 0, oy: 0 };
+  const probe: Cam = { ...plate.cam, dist: plate.cam.dist * (v.lens ?? 1), f: 1000, ox: 0, oy: 0 };
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const poly of mesh) {
     for (const v of poly.v) {
@@ -195,9 +206,10 @@ function fitFor(id: string, plate: Plate, mesh: Mesh): Fit {
     }
   }
 
+  const band = v === HERO ? BAND.hero : BAND.study;
   const w = Math.max(x1 - x0, 1e-3);
   const h = Math.max(y1 - y0, 1e-3);
-  const scale = Math.min(BAND.hero.w / w, BAND.hero.h / h);
+  const scale = Math.min(band.w / w, band.h / h);
 
   /* The projected centre is rarely the model origin — an object with a long
      tail on one side hangs off centre — so the offset recentres what was
@@ -206,21 +218,20 @@ function fitFor(id: string, plate: Plate, mesh: Mesh): Fit {
     f: 1000 * scale,
     ox: -((x0 + x1) / 2) * scale,
     oy: -((y0 + y1) / 2) * scale,
-    kStudy: Math.min(BAND.study.w / (w * scale), BAND.study.h / (h * scale)),
   };
-  FITS.set(id, fit);
+  FITS.set(key, fit);
   return fit;
 }
 
 /** The camera for one view, at that plate's current rotation. */
 function camFor(plate: Plate, id: string, v: View, fit: Fit): Cam {
   const a = ANGLE.get(id);
-  const k = v === HERO ? 1 : fit.kStudy;
   return {
     ...plate.cam,
-    f: fit.f * k,
-    ox: fit.ox * k,
-    oy: fit.oy * k,
+    dist: plate.cam.dist * (v.lens ?? 1),
+    f: fit.f,
+    ox: fit.ox,
+    oy: fit.oy,
     yaw: plate.cam.yaw + (v === HERO ? a?.yaw ?? 0 : 0),
     pitch: plate.cam.pitch + (v === HERO ? a?.pitch ?? 0 : 0),
   };
@@ -258,12 +269,12 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
   if (!quick) registration(ctx, p);
 
   const mesh = meshFor(id, plate);
-  const fit = fitFor(id, plate, mesh);
+  const heroCam = () => camFor(plate, id, HERO, fitFor(id, plate, mesh, HERO));
 
   for (const v of VIEWS) {
     if (quick && v !== HERO) continue;
 
-    const cam = camFor(plate, id, v, fit);
+    const cam = camFor(plate, id, v, fitFor(id, plate, mesh, v));
     const treatment: Treatment = quick ? 'flat' : v.treatment;
 
     if (v === HERO && !quick) glow(ctx, plate, cam, v, p);
@@ -277,8 +288,10 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
         ground: plate.ground,
         /* The shadow is a full-canvas radial gradient and the glow above is
            another; neither is legible at drag speed, so both sit out the quick
-           pass and come back on release. */
-        shadow: quick ? 0 : plate.shadow,
+           pass and come back on release. The line stage drops it too: a soft
+           cast shadow under a drawing made of outlines belongs to a different
+           medium, and it is the one thing that would blur the stage boundary. */
+        shadow: quick || treatment === 'line' ? 0 : plate.shadow,
         treatment,
       },
       p,
@@ -302,7 +315,7 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
     ctx.globalAlpha = 0.7;
     label(ctx, HERO.label, HERO.cx, HERO.ly, 'center', 7);
     ctx.globalAlpha = 1;
-    for (const n of plate.notes) leader(ctx, n, camFor(plate, id, HERO, fit), p);
+    for (const n of plate.notes) leader(ctx, n, heroCam(), p);
     ctx.fillStyle = p.label;
     ctx.globalAlpha = 0.75;
     label(ctx, plate.designation, W - 24, H - 8, 'right');
@@ -338,7 +351,7 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
   for (const v of VIEWS) label(ctx, v.label, v.cx, v.ly, 'center', 7);
   ctx.globalAlpha = 1;
 
-  for (const n of plate.notes) leader(ctx, n, camFor(plate, id, HERO, fit), p);
+  for (const n of plate.notes) leader(ctx, n, heroCam(), p);
 
   ctx.fillStyle = p.label;
   ctx.globalAlpha = 0.75;

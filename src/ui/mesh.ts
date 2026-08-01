@@ -269,7 +269,40 @@ export function sweepArc(
   return out;
 }
 
-/** Extrude a closed 2D polygon (XZ plane) along Y. Cards, slabs, wedges. */
+/**
+ * Extrude a closed 2D polygon (XZ plane) along Y. Cards, slabs, wedges.
+ *
+ * ── Winding ────────────────────────────────────────────────────────────────
+ * Every polygon here used to be wound the wrong way round, and it survived a
+ * long time because of how quietly it fails. `roundedRect` traverses
+ * counter-clockwise in an (X right, Z up) plot, and by the right-hand rule
+ * X × Z = −Y — so the "top" cap faced down, the walls faced inward, and the
+ * backface test culled the faces nearest the camera and kept the far ones. For
+ * a convex solid that costs you almost nothing visible: the silhouette is
+ * identical, and the far face's inverted normal points back at the camera, so
+ * it even shades like a front face.
+ *
+ * It is not free. Put something *inside* an extruded solid and the missing near
+ * wall stops hiding it — which is how suspended particles came to be visible
+ * through the wall of an opaque sample cell, and why chasing it through the
+ * painter's sort found nothing. The sort was right; the wall was never drawn.
+ *
+ * Correcting it globally was tried and reverted, because the inversion turns out
+ * to be load-bearing. Drop a thin decal on a large flat face — ruled text on a
+ * page — and a centroid sort cannot order the two: the page's top cap is one
+ * enormous quad centred at the origin, so a mark offset toward the back of the
+ * page has a *further* centroid than the whole page does, and the page draws
+ * over its own text. Not drawing that cap at all is what has been keeping every
+ * decal on every plate visible. Subdividing the cap does not rescue it either —
+ * the strips would have to be about 0.02 wide to beat the decal's own height.
+ *
+ * So the convention stays, and a caller that needs a genuinely closed solid —
+ * one with something inside it — passes its outline reversed. See `sampleCell`
+ * in `data/builds.ts`, which is the only object that does.
+ *
+ * `bevelBox` is inconsistent in the same way: four side faces correct, ±Y caps
+ * and chamfer strips inverted. It encloses nothing, so nothing shows through.
+ */
 export function extrude(poly: Array<[number, number]>, h: number, m = 0): Mesh {
   const out: Mesh = [];
   const top = h / 2, bot = -h / 2;

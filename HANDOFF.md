@@ -235,6 +235,44 @@ never drops below 5 substeps: a cheaper frame that kills the wave is not cheaper
 `#field` in the stacking order, so a listener on the canvas hears almost nothing.
 Interactive elements are excluded via a `closest('a, button, …')` check.
 
+**The board's three stages have to differ in *medium*, not in parameters.** They
+first shipped as faceted → matte → finished, and Ben's verdict was that all seven
+plates looked like one stage repeated three times. He was right, for a reason
+that only shows up at the size the studies are actually displayed at, about
+140 CSS px: a 40-segment lathe does not read as faceted, and a clay pass over an
+object that is mostly one neutral shell is the finished render with the accent
+removed. What survives at that size is a change of medium — outlines, then a grey
+model, then the object. `line` is a hidden-line drawing (fills in the page's own
+ground, only silhouette / crease / boundary edges stroked); `clay` is matte, has
+no highlight, no rim, no second light, a value range squeezed to a third of the
+ramp, **and a ×4 lens** so its projection is orthographic in all but name.
+Judge any change to these from a plate shot, never from the code.
+
+**⚠️ `extrude` and `bevelBox` wind polygons inward, and this is deliberate now.**
+The backface test therefore drops the face *nearest* the camera and keeps the far
+one. On a convex solid that is nearly invisible — same silhouette, and the far
+face's inverted normal points back at the camera so it even shades like a front
+face — which is why it went unnoticed through every plate revision. Verify
+winding arithmetically, never by eye: **X × Z = −Y**, so a polygon traversed
+counter-clockwise in an (X right, Z up) plot faces *down*.
+
+It was fixed globally on 2026-07-31 and **reverted the same session**, because
+the inversion is load-bearing. Correcting it made `activedoc` draw its page over
+its own ruled text. The page's top cap is one enormous quad centred at the
+origin, so a decal offset toward the back of the page has a *further* centroid
+than the whole page does, and a centroid sort puts the page in front of it. Not
+drawing that cap is what keeps every decal on every plate visible. Subdividing
+the cap does not rescue it either: the strips would have to be about 0.02 wide
+before a decal's own height could beat the strip's z spread. **Do not "fix" this
+without solving decal ordering first** — the two are the same problem.
+
+The one place it has a real cost is a solid with something *inside* it: particles
+in an opaque sample cell showed through the wall that was never drawn, and two
+rounds of chasing that through the sort found nothing, because the sort was
+right. Such a caller passes its outline reversed — `[...roundedRect(…)].reverse()`
+flips every polygon the extrude emits. `sampleCell` in `data/builds.ts` is the
+only object that needs it.
+
 **The sim advances on wall-clock, not per frame.** Substeps scale with frame
 time, bounded [0.5×, 2.5×], so wave speed and reported rate are not functions of
 the GPU. Headless SwiftShader runs at ~5 fps, so screenshots there are of a
@@ -406,6 +444,18 @@ confirmed. Form and sample follow from "hardware like ViveSense, for
 environmental and consumer samples". It carries **no grounding row and no
 result**, and the caveat says screening rather than measurement. Add an evidence
 row only when there is evidence.
+
+**2b · Plate 3 now draws a reader, not a sample.** It was a glass of water with
+particles in it, on the argument that the ordinary sample is the point. The
+argument was fine and the drawing was not — a tumbler reads as a drink, and the
+module's own spec table says the form is a reader and a sample cell, neither of
+which appeared. It is now a square cell between a source and a detector, with the
+beam drawn rather than modelled. **The arrangement is an inference from the spec
+table, not from anything Ben has described**: a straight-through path is the
+plainest thing consistent with "optical reader · sample cell", but if the real
+instrument reads at an angle, or reflects, the drawing is wrong in a way no
+caption fixes. The figcaption says "the arrangement, not the method" for exactly
+this reason. Worth one question to Ben.
 
 **3 · The impact-detection patent number.** The CV lists publication
 `US20230222795A1`; the site cites grant `US12511900B2`, in the M5 spec table.
