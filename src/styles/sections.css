@@ -22,6 +22,13 @@
 
 
 .lead__close {
+  /* This is the third child of a two-column grid, so it auto-placed into
+     column 1, row 2 — the *portrait's* column. Two things went wrong there. It
+     set a closing line of display type in a 15rem measure, which broke it to
+     two or three words a line; and it shared a column with a `sticky` plate,
+     which parked the photograph on top of it while both were on screen.
+     Belongs in the text column, under the prose it closes. */
+  grid-column: 2;
   margin-top: var(--s5);
   padding-top: var(--s3);
   border-top: 1px solid var(--rule);
@@ -41,11 +48,31 @@
 }
 @media (max-width: 880px) {
   .lead__body { grid-template-columns: 1fr; gap: var(--s4); }
+  /* Back to the only column there is. Left at 2, this would have *created* an
+     implicit second column on a phone and stacked the layout beside itself. */
+  .lead__close { grid-column: 1; }
 }
 
 /* The portrait is treated as a specimen plate: the photograph and
    its own surface-potential map cross-fade under the pointer. */
 .plate { position: sticky; top: 22vh; }
+
+/* Sticky only makes sense while the portrait has a column of its own. Once the
+   grid above collapses, the bio sits *below* the plate rather than beside it,
+   so a stuck plate parks itself on the text and the paragraphs scroll
+   underneath — measured at 320x346px of overlap at 360px wide.
+   This has to come *after* the rule it overrides. The same declarations inside
+   the collapse query above were written first and lost on source order, which
+   is invisible in the CSS and obvious in a measurement: the width cap applied,
+   because nothing competed with it, and the positioning did not. */
+@media (max-width: 880px) {
+  .plate {
+    position: static;
+    /* A full-column square portrait is most of a phone screen before the reader
+       reaches a word of the biography. */
+    max-width: 13rem;
+  }
+}
 .plate__frame {
   position: relative;
   aspect-ratio: 1;
@@ -95,15 +122,34 @@
 .sec--gap .wrap--narrow::before {
   content: '';
   position: absolute;
-  inset: -10% -8%;
+  /* Fixed lengths, not percentages. `inset` resolves top/bottom against the
+     containing block's *height* and left/right against its *width*, so the old
+     `-10% -8%` was a different distance on each axis and changed shape with
+     every viewport — tall and narrow on a phone, wide and flat on a desktop.
+     The horizontal bleed also has to stay inside the gutter: the section clips
+     on x, so anything wider than that is cut off square at the screen edge. */
+  inset: -3rem -1.5rem;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse at center,
-    var(--bg) 0%, var(--bg) 58%, transparent 80%
-  );
+  /* A flat colour behind a fixed mask, rather than a gradient whose stops are
+     the colour. Two things fall out of that. The inversion now animates a plain
+     `background-color`, which interpolates — a gradient built out of a custom
+     property does not reliably crossfade, so the scrim used to snap between
+     grounds while the page behind it swept. And the feather is now geometry
+     that never changes, so it cannot drift with the colour.
+
+     `farthest-side` puts the 100% ellipse on the four edge midpoints, so a stop
+     reaching transparent at 82% finishes inside the box on both axes. The
+     default `farthest-corner` sizes the ellipse to the *corners*, which put the
+     82% stop about 13% outside the box — the scrim met its own edge still
+     opaque, and that straight line is what read as a cut-off. */
+  background-color: var(--bg);
+  --scrim: radial-gradient(ellipse farthest-side at center,
+    #000 0%, #000 44%, rgba(0, 0, 0, 0.55) 66%, transparent 82%);
+  -webkit-mask-image: var(--scrim);
+  mask-image: var(--scrim);
   opacity: 0.9;
-  transition: background var(--dur-slow) var(--ease-in-out);
+  transition: background-color var(--dur-slow) var(--ease-in-out);
 }
 
 .gap__quote p {
@@ -417,6 +463,9 @@
 /* ── the full record, one click away ────────────────────────── */
 .pubs__more { margin-top: var(--s3); }
 .pubs__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: 500 var(--t-chrome)/1 var(--mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -425,6 +474,16 @@
   border: 1px solid var(--rule);
   transition: border-color var(--dur-fast) var(--ease-out),
               background var(--dur-fast) var(--ease-out);
+}
+
+/* Instrument chrome is set small on purpose, and at 0.685rem on a line-height
+   of 1 this button computes to about 26px tall — over the 24px floor and well
+   under a thumb. It is also the control that reveals twelve more publications,
+   so it is worth hitting first time. Coarse pointers only: the size is a
+   touch-target requirement, not a design change, and on a mouse the tighter
+   box is the one that belongs next to the rest of the chrome. */
+@media (pointer: coarse) {
+  .pubs__toggle { min-height: 44px; padding-inline: var(--s3); }
 }
 .pubs__toggle:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 [data-pubs-rest][hidden] { display: none; }

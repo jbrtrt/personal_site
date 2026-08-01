@@ -76,7 +76,8 @@
                the walk costs a 404 on every load. The path is relative to
                the page, so it resolves under the Pages base path with no
                code change. Absent, the frame falls back to PLATE PENDING. -->
-          <img class="plate__img" src="./headshot.jpeg" alt="Benjamin Greenfield" width="512" height="512" data-portrait />
+          <img class="plate__img" src="./headshot.jpeg" alt="Benjamin Greenfield" width="512" height="512"
+               loading="lazy" decoding="async" fetchpriority="low" data-portrait />
           <canvas class="plate__map" aria-hidden="true" data-portrait-map></canvas>
         </div>
         <figcaption class="chrome">SPECIMEN &mdash; B.G. &middot; surface potential</figcaption>

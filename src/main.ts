@@ -1,7 +1,19 @@
+/* Italic is a *cut*, not a slant. The surname in the hero, the emphasis in the
+   pull-quote and two smaller runs are all set `font-style: italic`, and none of
+   the italic faces were ever imported — so the browser was synthesising them by
+   shearing the roman. On a Didone that is the worst case: the stroke contrast is
+   the whole face, and an algorithmic slant drags the hairlines off axis. These
+   two imports are the designed italics.
+
+   The mono is pulled in latin-only. Every one of these files carries a
+   `unicode-range`, so a browser was already declining to fetch the Cyrillic and
+   Greek cuts — this drops them from the bundle rather than from the request. */
 import '@fontsource-variable/bodoni-moda';
+import '@fontsource-variable/bodoni-moda/wght-italic.css';
 import '@fontsource-variable/archivo';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource-variable/archivo/standard-italic.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '@fontsource/ibm-plex-mono/latin-500.css';
 
 import './styles/tokens.css';
 import './styles/base.css';
