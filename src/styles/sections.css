@@ -222,7 +222,16 @@
 .fig__plot {
   width: 100%;
   height: auto;
-  aspect-ratio: 460 / 268;
+  aspect-ratio: 460 / 340;
+  /* Vertical panning stays the browser's job and horizontal becomes ours, so a
+     swipe that starts on a plate still scrolls the page. Without this the drag
+     handler would have to fight the scroller on touch. */
+  touch-action: pan-y;
+  cursor: grab;
+}
+.fig__plot[data-turning] { cursor: grabbing; }
+@media (hover: none) {
+  .fig__plot { cursor: default; }
 }
 .fig__cap {
   margin-top: var(--s2);

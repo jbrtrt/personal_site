@@ -4,69 +4,75 @@
  * These were charts once: Bland–Altman bands, urea kinetics, a forest plot. The
  * charts were honest but they were *arguments*, and the prose beside them was
  * already making those arguments better. What the prose could not do was show
- * the thing. So each module now gets the object itself, drawn in the register of
- * an engraved plate — three-quarter view, lit from the upper left, labelled with
- * leaders, sitting on its own contact shadow.
+ * the thing.
+ *
+ * Each plate now draws its object three times — blocked, clay, rendered — which
+ * is what makes the section read as design work rather than as seven product
+ * shots. See `ui/figure.ts` for the board; this file is only the geometry.
  *
  * ── On honesty ──────────────────────────────────────────────────────────────
  * An object drawing makes no empirical claim, which is the point: nothing here
  * can overstate a result because nothing here reports one. Every number stayed
- * in the prose, where it is attributable. The leader labels name parts and
- * commitments — never measurements — so no plate asserts anything the page
- * cannot stand behind.
+ * in the prose and the spec tables, where it is attributable. Leader labels name
+ * parts and commitments — never measurements.
  *
- * Geometry is in model units, roughly "the object is about two units across",
- * and each plate carries the camera that frames it.
+ * ── On the renderer's one hard rule ─────────────────────────────────────────
+ * Painter's algorithm has no depth buffer, so *solids must not intersect*. An
+ * intersecting solid draws wholly in front or wholly behind, and near-concentric
+ * surfaces interleave into a torn edge. Everything below abuts instead: bands
+ * land on their host radius via `bandProfile()`, and limbs meet torsos at
+ * sphere joints of matching radius.
  */
 
 import {
-  bevelBox, capsuleProfile, cylinderProfile, extrude, lathe, material,
+  bevelBox, capsuleProfile, cylinderProfile, extrude, lathe,
   merge, norm, place, roundedRect, sphere, sweepArc,
   type Mesh, type V3,
 } from '../ui/mesh';
 import { MAT, type Cam, type Mat } from '../ui/render3d';
 
-/** A leader line: a point on the object, and the plate corner it labels from. */
+/** A leader line: a point on the object, and the corner it labels from. */
 export interface Note {
   /** Model-space point the leader springs from. */
   at: V3;
   text: string;
-  /** Which corner the label sits in. `br` is reserved for the designation. */
+  /** Which corner of the hero band the label sits in. */
   side: 'tl' | 'tr' | 'bl';
 }
 
 export interface Plate {
   /** Figure number, in reading order. */
   n: number;
-  /** Small caps designation, bottom right of the plate. */
+  /** Small caps designation, bottom right of the board. */
   designation: string;
   mats: Mat[];
   cam: Cam;
   ground: number;
   shadow: number;
   notes: Note[];
-  /** Built on first paint and cached — see `mesh()`. */
+  /** Built on first paint and cached — see `figure.ts`. */
   build: () => Mesh;
   /** A soft light source inside the object, drawn under the geometry. */
   glow?: { at: V3; r: number };
-  /** Great circles inked onto a sphere after the geometry — a ball's seams. */
-  seams?: { centre: V3; axis: V3; r: number }[];
+  /** Polylines inked over the finished object — a trace on a screen, an arrow
+      on a page. Drawn only on the hero, and only at the rendered stage. */
+  strokes?: { points: V3[]; accent?: boolean; width?: number }[];
 }
 
 /* ── shared materials ─────────────────────────────────────────────────────
-   Five bodies cover all seven objects. Keeping the set small is what makes
+   Seven bodies cover all seven objects. Keeping the set small is what makes
    the plates read as one series rather than seven separate renders. */
 
 const SHELL = MAT(0.90, 0.24, 26);          // moulded housing
 const TRIM = MAT(0.54, 0.30, 44);           // dark inset, recessed detail
 const SIGNAL = MAT(0.86, 0.34, 40, 1);      // the one accent element
 const METAL = MAT(0.96, 0.62, 70);          // machined, polished
-const ROUGH = MAT(0.80, 0.08, 6);           // mineral, unpolished
-const GLASS = MAT(1.00, 0.55, 90, 0, 0.34); // see-through
-const PANEL = MAT(0.60, 0.22, 30);          // the darker half of a ball
+const SKIN = MAT(0.84, 0.16, 14);           // matte, soft falloff
+const GLASS = MAT(1.00, 0.55, 90, 0, 0.30); // see-through
+const WATER = MAT(0.94, 0.34, 60, 0, 0.20); // see-through, and heavier
 
-const STD: Mat[] = [SHELL, TRIM, SIGNAL, METAL, ROUGH, GLASS, PANEL];
-const M = { shell: 0, trim: 1, signal: 2, metal: 3, rough: 4, glass: 5, panel: 6 };
+const STD: Mat[] = [SHELL, TRIM, SIGNAL, METAL, SKIN, GLASS, WATER];
+const M = { shell: 0, trim: 1, signal: 2, metal: 3, skin: 4, glass: 5, water: 6 };
 
 /**
  * A raised band around a cylinder, chamfered down to meet it exactly.
@@ -84,39 +90,40 @@ const bandProfile = (host: number, r: number, len: number, cham = 0.02): Array<[
 const cam = (f: number, over: Partial<Cam> = {}): Cam =>
   ({ yaw: -0.62, pitch: 0.34, dist: 5.4, f, ...over });
 
-/* ── M1 · ViveSense — the reader and its slide ───────────────────────────── */
+/* ── M1 · ViveSense — the countertop dock and its clip-on optic ──────────── */
 
-function reader(): Mesh {
-  const body = bevelBox(2.0, 0.54, 1.24, 0.10, M.shell);
+function optic(): Mesh {
+  // Countertop language: low, soft-cornered, nothing that looks like a bench.
+  const dock = bevelBox(1.9, 0.36, 1.12, 0.13, M.shell);
 
-  // Optical turret, offset so the plate is not symmetric about its own axis.
-  const turret = place(lathe(cylinderProfile(0.27, 0.16), 28, M.metal), { pos: [0.44, 0.3, 0] });
-  const lens = place(lathe(cylinderProfile(0.185, 0.03), 28, M.signal), { pos: [0.44, 0.385, 0] });
+  const readout = place(extrude(roundedRect(0.52, 0.36, 0.06), 0.02, M.trim), { pos: [-0.55, 0.19, 0] });
 
-  // Read-out window, sunk into the top.
-  const window_ = place(extrude(roundedRect(0.62, 0.34, 0.06), 0.03, M.trim), { pos: [-0.42, 0.255, 0] });
+  // The optical module sits *on* the dock — abutting, never sunk into it.
+  const head = place(bevelBox(0.72, 0.44, 0.62, 0.09, M.shell), { pos: [0.38, 0.4, 0] });
+  const barrel = place(lathe(cylinderProfile(0.15, 0.15), 24, M.metal), { pos: [0.38, 0.4, 0.385], rot: [Math.PI / 2, 0, 0] });
+  const lens = place(lathe(cylinderProfile(0.115, 0.03), 24, M.signal), { pos: [0.38, 0.4, 0.47], rot: [Math.PI / 2, 0, 0] });
 
-  /* The slide, half in. A closed reader is a box; the thing that says what it
-     is for is the consumable sticking out of it. */
-  const slide = place(extrude(roundedRect(1.15, 0.46, 0.05), 0.06, M.shell), { pos: [-1.62, -0.1, 0.2] });
-  const port = place(extrude(roundedRect(0.26, 0.2, 0.04), 0.07, M.signal), { pos: [-1.95, -0.1, 0.2] });
+  /* The clip is what makes it a clip-on rather than a box: an arch landing on
+     the dock's top face at both ends. */
+  const clip = place(sweepArc(0.25, 0.032, 0.02 * Math.PI, 0.98 * Math.PI, 22, 8, M.metal), { pos: [-0.02, 0.19, 0] });
 
-  const slot = place(extrude(roundedRect(0.16, 0.56, 0.03), 0.14, M.trim), { pos: [-0.98, -0.1, 0.2] });
+  // The consumable, entering the module's left face.
+  const slide = place(extrude(roundedRect(0.66, 0.3, 0.05), 0.05, M.shell), { pos: [-0.33, 0.4, 0] });
+  const window_ = place(extrude(roundedRect(0.17, 0.16, 0.03), 0.06, M.signal), { pos: [-0.52, 0.4, 0] });
 
   const feet = [-0.7, 0.7].flatMap((x) =>
-    [-0.4, 0.4].map((z) =>
-      place(lathe(cylinderProfile(0.08, 0.08), 12, M.trim), { pos: [x, -0.3, z] })),
+    [-0.36, 0.36].map((z) =>
+      place(lathe(cylinderProfile(0.07, 0.07), 12, M.trim), { pos: [x, -0.21, z] })),
   );
 
-  return merge(body, turret, lens, window_, slot, slide, port, ...feet);
+  return merge(dock, readout, head, barrel, lens, clip, slide, window_, ...feet);
 }
 
-/* ── M2 · NEPHRA ONE — the implant ───────────────────────────────────────── */
+/* ── M2 · NEPHRA ONE — the implant, unchanged ────────────────────────────── */
 
 function implant(): Mesh {
   const shell = place(lathe(capsuleProfile(0.40, 1.1, 10), 32, M.shell), { rot: [0, 0, Math.PI / 2] });
 
-  // The filtration stage, called out as the only accent band on the body.
   const band = place(lathe(bandProfile(0.4, 0.458, 0.34), 32, M.signal), { pos: [0.12, 0, 0], rot: [0, 0, Math.PI / 2] });
   const seam = place(lathe(bandProfile(0.4, 0.44, 0.05, 0.012), 32, M.trim), { pos: [-0.5, 0, 0], rot: [0, 0, Math.PI / 2] });
 
@@ -138,135 +145,265 @@ function implant(): Mesh {
   return merge(shell, band, seam, ...ports, ...cuffs);
 }
 
-/* ── M3 · stoneidx — the specimen ────────────────────────────────────────── */
+/* ── M3 · Microplastics — a glass of water, particles suspended ──────────── */
 
-function specimen(): Mesh {
-  /* Deterministic seeds: these stones must be the same stones after a ground
-     inversion repaints them. */
-  const big = place(sphere(0.54, 2, M.rough, 0.46, 7), { pos: [-0.12, 0.5, 0], rot: [0.3, 0.7, 0.2] });
-  const mid = place(sphere(0.34, 2, M.rough, 0.55, 23), { pos: [0.78, 0.31, 0.3], rot: [0.9, 0.2, 1.1] });
-  const small = place(sphere(0.23, 2, M.rough, 0.62, 41), { pos: [0.4, 0.21, -0.7], rot: [0.4, 1.8, 0.6] });
-
-  /* A tray. Without it three lumps float; with it they are a specimen, which
-     is the whole difference between a rock and a finding. */
-  const tray = place(extrude(roundedRect(2.5, 1.7, 0.16), 0.06, M.trim), { pos: [0.1, -0.03, 0] });
-  const rule = place(extrude(roundedRect(0.9, 0.05, 0.02), 0.02, M.signal), { pos: [-0.75, 0.03, 0.66] });
-
-  return merge(tray, rule, big, mid, small);
-}
-
-/* ── M4 · Ocula — the bedside hub ────────────────────────────────────────── */
-
-function hub(): Mesh {
-  /* The dome is generated rather than listed. Each lathe rung is filled with
-     one linear gradient, so a coarse profile shows Mach bands where the rungs
-     meet; sampling the curve finely is cheaper than hand-listing points and
-     removes the banding. */
-  const dome: Array<[number, number]> = [[0, -0.34], [0.58, -0.34], [0.65, -0.27]];
-  for (let i = 1; i <= 14; i++) {
-    const t = i / 14;
-    dome.push([0.65 * Math.cos((t * Math.PI) / 2) ** 0.62, -0.27 + 0.71 * Math.sin((t * Math.PI) / 2)]);
-  }
-  const body = lathe(dome, 40, M.shell);
-
-  /* The consent ring: the only part that ever leaves the house. It sits under
-     the body rather than around it — a ring that intersects the shell
-     serrates, because the painter's sort has to pick one of them per face. */
-  const ring = place(lathe(cylinderProfile(0.6, 0.045), 40, M.signal), { pos: [0, -0.368, 0] });
-
-  const barrel = place(lathe(cylinderProfile(0.18, 0.12), 28, M.trim), { pos: [0, 0.03, 0.56], rot: [Math.PI / 2, 0, 0] });
-  const glass = place(lathe(cylinderProfile(0.145, 0.03), 28, M.glass), { pos: [0, 0.03, 0.63], rot: [Math.PI / 2, 0, 0] });
-
-  return merge(body, ring, barrel, glass);
-}
-
-/* ── M5 · FlopCheck — the ball ───────────────────────────────────────────── */
-
-/* ── M5 · FlopCheck — the ball ───────────────────────────────────────────── */
-
-function ball(): Mesh {
-  const R = 0.8;
-
-  /* No panel classification. The seams are drawn as curves on the surface
-     afterwards (see `seams` below), which is exact at any subdivision — face
-     classification produced a zigzag at every subdivision cheap enough to
-     draw. */
-  const skin = sphere(R, 3, M.shell);
-
-  // The contact, marked where the plate says the impulse arrived.
-  const d = norm([0.42, 0.4, 0.82]);
-  const mark = place(sphere(0.075, 1, M.signal), { pos: [d[0] * R, d[1] * R, d[2] * R] });
-
-  return merge(place(skin, { pos: [0, R, 0] }), place(mark, { pos: [0, R, 0] }));
-}
-
-/* ── M6 · Lantern ────────────────────────────────────────────────────────── */
-
-function lantern(): Mesh {
-  const foot = lathe([
-    [0, -0.66], [0.44, -0.66], [0.47, -0.6], [0.4, -0.53], [0.24, -0.48], [0.23, -0.42],
-  ], 32, M.shell);
-
+function tumbler(): Mesh {
+  /* Slightly flared, thick-based: a drinking glass, not laboratory ware. The
+     whole point of this plate is that the sample is ordinary. */
   const glass = lathe([
-    [0.23, -0.42], [0.4, -0.3], [0.44, 0.0], [0.39, 0.27], [0.25, 0.38],
-  ], 32, M.glass);
+    [0, -0.52], [0.36, -0.52], [0.38, -0.46], [0.365, -0.3],
+    [0.385, 0.0], [0.41, 0.3], [0.43, 0.54],
+  ], 40, M.glass);
 
-  const cap = lathe([
-    [0.25, 0.38], [0.36, 0.43], [0.31, 0.5], [0.14, 0.58], [0.11, 0.64], [0, 0.66],
-  ], 32, M.shell);
+  // Held clear of the glass wall at every height, so the two never cross.
+  const water = lathe([
+    [0, -0.44], [0.325, -0.44], [0.34, -0.1], [0.36, 0.22], [0, 0.22],
+  ], 40, M.water);
 
-  const core = place(material(sphere(0.14, 2), M.signal), { pos: [0, -0.1, 0] });
+  /* Deterministic scatter: these must be the same particles after a ground
+     inversion repaints them, and the same ones at every angle of rotation. */
+  let h = 20260731;
+  const rand = () => { h = (h * 1103515245 + 12345) % 2147483648; return h / 2147483648; };
+  const motes = Array.from({ length: 22 }, () => {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * 0.28;
+    return place(sphere(0.012 + rand() * 0.011, 1, M.signal), {
+      pos: [Math.cos(a) * r, -0.4 + rand() * 0.58, Math.sin(a) * r],
+    });
+  });
 
-  /* The handle is the argument: whatever the thing says, a person is one reach
-     away from it. */
-  const handle = place(
-    sweepArc(0.3, 0.028, 0.06 * Math.PI, 0.94 * Math.PI, 26, 8, M.metal),
-    { pos: [0, 0.46, 0] },
-  );
-
-  return merge(foot, core, glass, cap, handle);
+  return merge(glass, water, ...motes);
 }
 
-/* ── M7 · notes2anki — the stack ─────────────────────────────────────────── */
+/* ── M4 · Ocula — the ambulatory recorder ────────────────────────────────── */
 
-function cards(): Mesh {
-  const stack = [0, 1, 2, 3, 4].map((i) =>
-    place(extrude(roundedRect(1.45, 0.98, 0.1), 0.05, i === 4 ? M.shell : M.shell), {
-      pos: [0, -0.3 + i * 0.075, 0],
-      rot: [0, (i - 2) * 0.055, 0],
+function recorder(): Mesh {
+  const body = bevelBox(1.05, 0.17, 0.66, 0.05, M.shell);
+  const screen = place(extrude(roundedRect(0.76, 0.4, 0.04), 0.02, M.trim), { pos: [0, 0.085, 0.02] });
+  const key = place(lathe(cylinderProfile(0.05, 0.03), 16, M.metal), { pos: [0.42, 0.1, -0.2] });
+
+  /* Leads leaving one edge. The arc is authored in XY, so it is rotated into
+     the ground plane rather than standing up out of it. */
+  const leads = [0.12, -0.14].map((z, i) =>
+    place(sweepArc(0.46, 0.02, 0.04 * Math.PI, 0.6 * Math.PI, 18, 7, M.trim), {
+      pos: [-0.52, -0.06, z],
+      rot: [Math.PI / 2, 0.35 + i * 0.45, 0],
     }),
   );
 
-  // The adopted card, edged so it reads as the one that won.
-  const edge = place(extrude(roundedRect(1.45, 0.07, 0.03), 0.056, M.signal), {
-    pos: [0, 0.005, 0.46],
-    rot: [0, 0.11, 0],
-  });
-
-  /* One card off the stack. Most rewrites are discarded, and a stack alone
-     would only show the ones that survived. */
-  const dropped = place(extrude(roundedRect(1.3, 0.88, 0.1), 0.045, M.trim), {
-    pos: [1.15, -0.33, 0.78],
-    rot: [0, -0.5, 0.1],
-  });
-
-  return merge(...stack, edge, dropped);
+  return merge(body, screen, key, ...leads);
 }
+
+/** Two beats of the trace on the recorder's screen, in model space. */
+const TRACE: V3[] = (() => {
+  const pts: V3[] = [];
+  const y = 0.108;
+  for (let i = 0; i <= 84; i++) {
+    const t = i / 84;
+    const u = (t * 2) % 1;
+    let v = 0;
+    v += 0.16 * Math.exp(-(((u - 0.16) / 0.05) ** 2));
+    v -= 0.10 * Math.exp(-(((u - 0.34) / 0.014) ** 2));
+    v += 0.92 * Math.exp(-(((u - 0.40) / 0.017) ** 2));
+    v -= 0.24 * Math.exp(-(((u - 0.46) / 0.020) ** 2));
+    v += 0.30 * Math.exp(-(((u - 0.68) / 0.060) ** 2));
+    pts.push([-0.33 + t * 0.66, y, 0.02 - v * 0.15]);
+  }
+  return pts;
+})();
+
+/* ── M5 · FlopCheck — two figures, and the contact between them ──────────── */
+
+/**
+ * A tapered limb between two points, with no end caps.
+ *
+ * Orientation is derived rather than authored: `lathe` builds along +Y and
+ * `place()` applies X then Y then Z, so a point (0, L, 0) lands at
+ * (−cos rx · sin rz, cos rx · cos rz, sin rx) · L. Solving that against the
+ * wanted direction gives the two angles below.
+ *
+ * Caps are omitted on purpose — the joints are spheres of matching radius, so
+ * the surface reads continuous instead of seamed and nothing intersects.
+ */
+function limb(from: V3, to: V3, profile: Array<[number, number]>, m: number, seg = 10): Mesh {
+  const d: V3 = [to[0] - from[0], to[1] - from[1], to[2] - from[2]];
+  const len = Math.hypot(d[0], d[1], d[2]) || 1e-4;
+  const u = norm(d);
+
+  const rx = Math.asin(Math.max(-1, Math.min(1, u[2])));
+  const rz = Math.atan2(-u[0], u[1]);
+
+  return place(lathe(profile.map(([r, t]): [number, number] => [r, (t - 0.5) * len]), seg, m), {
+    rot: [rx, 0, rz],
+    pos: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2],
+  });
+}
+
+/** A plain taper — arms, legs, neck. */
+const bone = (from: V3, to: V3, r0: number, r1: number, m: number, seg = 10): Mesh =>
+  limb(from, to, [[r0, 0], [r1, 1]], m, seg);
+
+/* Chest, waist, pelvis. A single taper between two joint spheres was the first
+   attempt and it read as a snowman: the spheres were wider than the cone, so
+   the torso became two balls with a neck between them. A profile with real
+   shoulders and a waist costs four more rungs and removes the need for the
+   spheres at all. */
+const TORSO: Array<[number, number]> = [
+  [0.115, 0], [0.152, 0.08], [0.148, 0.26], [0.118, 0.46],
+  [0.132, 0.66], [0.152, 0.84], [0.118, 0.97], [0.075, 1],
+];
+
+const joint = (at: V3, r: number, m: number): Mesh => place(sphere(r, 1, m), { pos: at });
+
+interface Pose {
+  hip: V3; neck: V3; head: V3;
+  shoulder: [V3, V3]; elbow: [V3, V3]; hand: [V3, V3];
+  knee: [V3, V3]; foot: [V3, V3];
+}
+
+function person(p: Pose, m: number): Mesh {
+  const parts: Mesh[] = [
+    limb(p.hip, p.neck, TORSO, m, 14),
+    bone(p.neck, p.head, 0.052, 0.048, m, 10),
+    place(sphere(0.125, 2, m), { pos: p.head }),
+  ];
+
+  /* Joints sit just *inside* the limb they cap, so they fill the elbow without
+     bulging out of it — a sphere wider than its bone is what makes a figure
+     read as a mannequin. */
+  for (const i of [0, 1]) {
+    parts.push(
+      bone(p.shoulder[i], p.elbow[i], 0.056, 0.044, m),
+      bone(p.elbow[i], p.hand[i], 0.044, 0.032, m),
+      joint(p.shoulder[i], 0.055, m),
+      joint(p.elbow[i], 0.043, m),
+      joint(p.hand[i], 0.038, m),
+    );
+
+    const hipSide: V3 = [p.hip[0] + (i ? 0.075 : -0.075), p.hip[1] - 0.02, p.hip[2]];
+    parts.push(
+      bone(hipSide, p.knee[i], 0.082, 0.056, m),
+      bone(p.knee[i], p.foot[i], 0.056, 0.042, m),
+      joint(p.knee[i], 0.056, m),
+      joint(p.foot[i], 0.046, m),
+    );
+  }
+
+  return merge(...parts);
+}
+
+function contact(): Mesh {
+  // The challenger: upright, weight forward, trailing leg through.
+  const a: Pose = {
+    hip: [-0.7, 0.92, 0.08], neck: [-0.64, 1.42, 0.04], head: [-0.61, 1.6, 0.03],
+    shoulder: [[-0.81, 1.37, 0.05], [-0.47, 1.37, 0.04]],
+    elbow: [[-0.98, 1.12, 0.14], [-0.36, 1.14, -0.08]],
+    hand: [[-1.02, 0.86, 0.26], [-0.26, 0.9, -0.2]],
+    knee: [[-0.88, 0.5, -0.02], [-0.42, 0.58, 0.24]],
+    foot: [[-0.94, 0.06, -0.1], [-0.14, 0.44, 0.38]],
+  };
+
+  /* The one going down: hips dropping, torso rotating away, arms out. Placed
+     clearly forward in depth so the painter's sort never has to choose between
+     the two of them. */
+  const b: Pose = {
+    hip: [0.22, 0.74, 0.52], neck: [0.42, 1.18, 0.46], head: [0.51, 1.34, 0.43],
+    shoulder: [[0.28, 1.14, 0.52], [0.58, 1.16, 0.4]],
+    elbow: [[0.16, 0.88, 0.68], [0.82, 1.3, 0.36]],
+    hand: [[0.02, 0.66, 0.8], [1.02, 1.46, 0.32]],
+    knee: [[0.04, 0.34, 0.62], [0.48, 0.4, 0.44]],
+    foot: [[-0.14, 0.04, 0.54], [0.7, 0.06, 0.38]],
+  };
+
+  // The contact itself, marked where the plate says the impulse arrived.
+  const mark = place(sphere(0.075, 1, M.signal), { pos: [-0.2, 0.46, 0.4] });
+
+  return merge(person(a, M.skin), person(b, M.skin), mark);
+}
+
+/* ── M6 · Lantern — the bedside unit ─────────────────────────────────────── */
+
+function lanternUnit(): Mesh {
+  // Weighted, so it cannot be knocked off a bedside table.
+  const base = lathe([
+    [0, -0.34], [0.48, -0.34], [0.52, -0.29], [0.48, -0.24],
+    [0.22, -0.2], [0.17, -0.08], [0.15, 0.06],
+  ], 32, M.shell);
+
+  /* Screen and face are built together and tilted as one, so the face can sit
+     proud of the shell without ever crossing it. */
+  const panel = merge(
+    bevelBox(1.02, 0.66, 0.08, 0.035, M.shell),
+    place(bevelBox(0.86, 0.5, 0.02, 0.02, M.trim), { pos: [0, 0.02, 0.05] }),
+  );
+  const screen = place(panel, { pos: [0, 0.36, 0.02], rot: [-0.2, 0, 0] });
+
+  // One physical key. There is nothing else to press.
+  const key = place(lathe(cylinderProfile(0.085, 0.045), 20, M.signal), {
+    pos: [0, -0.13, 0.24], rot: [Math.PI / 2 - 0.35, 0, 0],
+  });
+
+  const cord = place(sweepArc(0.5, 0.022, 0.06 * Math.PI, 0.66 * Math.PI, 18, 7, M.trim), {
+    pos: [-0.38, -0.32, -0.12], rot: [Math.PI / 2, 0.6, 0],
+  });
+
+  return merge(base, screen, key, cord);
+}
+
+/* ── M7 · ActiveDoc — the page, marked, and the card it made ─────────────── */
+
+function pageAndCard(): Mesh {
+  const sheet = extrude(roundedRect(1.5, 1.06, 0.02), 0.014, M.shell);
+
+  /* Ruled text. Formatting is the input this project reads as meaning, so the
+     page has to carry structure rather than a grey block: two rows indented,
+     the last one short. */
+  const lines: Mesh[] = [];
+  const rows = 9;
+  for (let i = 0; i < rows; i++) {
+    const indent = i === 3 || i === 4 ? 0.14 : 0;
+    const w = (i === rows - 1 ? 0.6 : 1.1) - indent;
+    lines.push(place(extrude(roundedRect(w, 0.022, 0.008), 0.006, M.trim), {
+      pos: [-0.55 + indent + w / 2, 0.01, -0.4 + i * 0.1],
+    }));
+  }
+
+  // The highlighted block: two rows lifted out of the page.
+  const mark = place(extrude(roundedRect(0.78, 0.14, 0.012), 0.005, M.signal), { pos: [-0.08, 0.008, -0.05] });
+
+  /* The card it produced, lying across the corner — above the sheet, never
+     through it. */
+  const card = place(extrude(roundedRect(0.7, 0.46, 0.06), 0.026, M.shell), {
+    pos: [0.98, 0.05, 0.62], rot: [0, -0.42, 0],
+  });
+  const edge = place(extrude(roundedRect(0.7, 0.04, 0.02), 0.028, M.signal), {
+    pos: [1.06, 0.05, 0.81], rot: [0, -0.42, 0],
+  });
+
+  return merge(sheet, ...lines, mark, card, edge);
+}
+
+/** The margin arrow — drawn, not modelled. */
+const ARROW: V3[] = [
+  [-0.68, 0.02, 0.22], [-0.56, 0.02, 0.06], [-0.42, 0.02, -0.03], [-0.3, 0.02, -0.05],
+  // back along itself to draw the head, since this is one open polyline
+  [-0.37, 0.02, -0.11], [-0.3, 0.02, -0.05], [-0.37, 0.02, 0.02],
+];
 
 /* ── the seven ───────────────────────────────────────────────────────────── */
 
 export const PLATES: Record<string, Plate> = {
   vivesense: {
     n: 1,
-    designation: 'READER · OPTICAL · WITH SLIDE',
+    designation: 'OPTIC · CLIP-ON · COUNTERTOP DOCK',
     mats: STD,
-    cam: cam(360, { yaw: -0.68, pitch: 0.38, oy: 4 }),
-    ground: -0.3,
-    shadow: 1.7,
-    build: reader,
+    cam: cam(1120, { yaw: -0.66, pitch: 0.34 }),
+    ground: -0.19,
+    shadow: 1.5,
+    build: optic,
     notes: [
-      { at: [0.44, 0.4, 0], text: 'OPTICAL PATH', side: 'tr' },
-      { at: [-1.9, -0.12, 0.2], text: 'SAMPLE SLIDE', side: 'bl' },
+      { at: [0.38, 0.4, 0.49], text: 'OPTICAL PATH', side: 'tr' },
+      { at: [-0.6, 0.4, 0], text: 'SAMPLE SLIDE', side: 'bl' },
     ],
   },
 
@@ -274,7 +411,7 @@ export const PLATES: Record<string, Plate> = {
     n: 2,
     designation: 'IMPLANT · CONTINUOUS FILTRATION',
     mats: STD,
-    cam: cam(470, { yaw: -0.5, pitch: 0.3 }),
+    cam: cam(1120, { yaw: -0.5, pitch: 0.3 }),
     ground: -0.42,
     shadow: 1.5,
     build: implant,
@@ -284,79 +421,76 @@ export const PLATES: Record<string, Plate> = {
     ],
   },
 
-  stoneidx: {
+  microplastics: {
     n: 3,
-    designation: 'SPECIMEN · CALCULI · TRAY',
+    designation: 'SAMPLE · DRINKING WATER · PARTICULATE',
     mats: STD,
-    cam: cam(470, { yaw: -0.72, pitch: 0.46 }),
-    ground: -0.06,
-    shadow: 1.6,
-    build: specimen,
+    cam: cam(1000, { yaw: -0.5, pitch: 0.16, oy: 8 }),
+    ground: -0.52,
+    shadow: 0.95,
+    build: tumbler,
     notes: [
-      { at: [-0.12, 1.02, 0], text: 'CALCULUS', side: 'tl' },
-      { at: [-0.75, 0.06, 0.66], text: 'THE ENCOUNTER, NOT THE PATIENT', side: 'bl' },
+      { at: [0.1, 0.05, 0.22], text: 'PARTICULATE LOAD', side: 'tr' },
+      { at: [-0.3, -0.42, 0.16], text: 'ANY POURED SAMPLE', side: 'bl' },
     ],
   },
 
   ocula: {
     n: 4,
-    designation: 'HUB · BEDSIDE · CONSENT-GATED',
+    designation: 'RECORDER · AMBULATORY · CONTINUOUS',
     mats: STD,
-    cam: cam(600, { yaw: -0.44, pitch: 0.26 }),
-    ground: -0.385,
+    cam: cam(1180, { yaw: -0.54, pitch: 0.44 }),
+    ground: -0.085,
     shadow: 1.3,
-    build: hub,
+    build: recorder,
+    strokes: [{ points: TRACE, accent: true, width: 1.6 }],
     notes: [
-      { at: [0, 0.03, 0.68], text: 'CAPTURE, ON DEVICE', side: 'tr' },
-      { at: [-0.52, -0.36, 0.3], text: 'SUMMARIES LEAVE, LIFE STAYS', side: 'bl' },
+      { at: [0.12, 0.11, -0.04], text: 'ROLLING TRACE', side: 'tr' },
+      { at: [-0.56, -0.05, 0.18], text: 'THE HOURS BETWEEN VISITS', side: 'bl' },
     ],
   },
 
   flopcheck: {
     n: 5,
-    designation: 'BALL · MATCH · CONTACT MARKED',
+    designation: 'CHALLENGE · AND THE RESPONSE TO IT',
     mats: STD,
-    cam: cam(390, { yaw: -0.55, pitch: 0.26, oy: 10 }),
+    cam: cam(560, { yaw: -0.42, pitch: 0.14, oy: 96 }),
     ground: 0,
-    shadow: 1.15,
-    build: ball,
-    seams: [
-      { centre: [0, 0.8, 0], axis: [0, 1, 0], r: 0.8 },
-      { centre: [0, 0.8, 0], axis: [1, 0, 0], r: 0.8 },
-      { centre: [0, 0.8, 0], axis: [0, 0, 1], r: 0.8 },
-    ],
+    shadow: 1.5,
+    build: contact,
     notes: [
-      { at: [0.5, 1.07, 0.56], text: 'POINT OF CONTACT', side: 'tr' },
-      { at: [-0.6, 0.5, 0.36], text: 'DEPTH IS THE CEILING', side: 'bl' },
+      { at: [0.08, 0.46, 0.42], text: 'POINT OF CONTACT', side: 'tr' },
+      { at: [0.3, 0.66, 0.82], text: 'DEPTH IS THE CEILING', side: 'bl' },
     ],
   },
 
   lantern: {
     n: 6,
-    designation: 'LANTERN · BEDSIDE · CARRIED',
+    designation: 'BEDSIDE UNIT · ONE KEY · CORDED',
     mats: STD,
-    cam: cam(500, { yaw: -0.5, pitch: 0.22 }),
-    ground: -0.66,
-    shadow: 1.1,
-    glow: { at: [0, -0.1, 0], r: 1.15 },
-    build: lantern,
+    cam: cam(1000, { yaw: -0.46, pitch: 0.24, oy: 34 }),
+    ground: -0.34,
+    shadow: 1.15,
+    glow: { at: [0, 0.34, 0.1], r: 0.85 },
+    build: lanternUnit,
     notes: [
-      { at: [-0.28, 0.72, 0], text: 'ONE TOUCH TO A HUMAN', side: 'tl' },
-      { at: [0.4, -0.2, 0.12], text: 'REFUSES BY DEFAULT', side: 'bl' },
+      { at: [0.22, 0.44, 0.12], text: 'REFUSES BY DEFAULT', side: 'tr' },
+      { at: [0, -0.13, 0.28], text: 'ONE TOUCH TO A HUMAN', side: 'bl' },
     ],
   },
 
-  notes2anki: {
+  activedoc: {
     n: 7,
-    designation: 'STACK · ADOPTED AND DISCARDED',
+    designation: 'PAGE · MARKED · AND THE CARD IT MADE',
     mats: STD,
-    cam: cam(500, { yaw: -0.6, pitch: 0.42 }),
-    ground: -0.36,
-    shadow: 1.7,
-    build: cards,
+    cam: cam(1120, { yaw: -0.5, pitch: 0.62 }),
+    ground: -0.008,
+    shadow: 1.4,
+    build: pageAndCard,
+    strokes: [{ points: ARROW, accent: true, width: 1.5 }],
     notes: [
-      { at: [-0.7, 0.03, 0.42], text: 'ADOPTED', side: 'tl' },
-      { at: [1.3, -0.3, 1.0], text: 'DISCARDED', side: 'bl' },
+      { at: [-0.08, 0.014, -0.05], text: 'FORMATTING IS THE MEANING', side: 'tl' },
+      { at: [0.98, 0.08, 0.62], text: 'ONE CARD, GRADED', side: 'bl' },
     ],
   },
 };

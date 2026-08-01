@@ -18,7 +18,7 @@ page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2500);
 
-const ids = process.env.ONLY ? process.env.ONLY.split(',') : ['vivesense','nephra','stoneidx','ocula','flopcheck','lantern','notes2anki'];
+const ids = process.env.ONLY ? process.env.ONLY.split(',') : ['vivesense','nephra','microplastics','ocula','flopcheck','lantern','activedoc'];
 for (const id of ids) {
   await page.evaluate((m) => document.querySelector(`[data-mod="${m}"]`)?.scrollIntoView({ block: 'center' }), id);
   await page.waitForFunction((m) => (document.querySelector(`canvas[data-figure="${m}"]`)?.width ?? 0) > 400, id, { timeout: 15000 }).catch(() => {});

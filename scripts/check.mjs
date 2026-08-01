@@ -35,8 +35,10 @@ const boot = await page.evaluate(() => ({
   beliefs: document.querySelectorAll('.mod__belief').length,
   pubsShown: document.querySelectorAll('[data-pubs] .pub').length,
   pubsRest: document.querySelectorAll('[data-pubs-rest] .pub').length,
-  specs: document.querySelectorAll('.spec').length,
-  specRows: document.querySelectorAll('.spec dd').length,
+  specs: document.querySelectorAll('.mod .spec').length,
+  roles: document.querySelectorAll('.sec--ledger .spec dd').length,
+  register: document.querySelectorAll('.register li').length,
+  specRows: document.querySelectorAll('.mod .spec dd').length,
   portrait: !document.querySelector('.plate__frame')?.hasAttribute('data-empty'),
   probe: window.__bg?.probe?.(),
 }));
@@ -61,7 +63,7 @@ const field = await page.evaluate(() => {
 /* Each figure only draws once it is near the viewport, so scroll every module
    into view rather than assuming one pass covers them. */
 const figures = [];
-for (const id of ['vivesense', 'nephra', 'stoneidx', 'ocula', 'flopcheck', 'lantern', 'notes2anki']) {
+for (const id of ['vivesense', 'nephra', 'microplastics', 'ocula', 'flopcheck', 'lantern', 'activedoc']) {
   await page.evaluate((m) => document.querySelector(`[data-mod="${m}"]`)?.scrollIntoView({ block: 'center' }), id);
 
   /* Poll rather than sleep. Lenis animates the scroll and the first jump out of

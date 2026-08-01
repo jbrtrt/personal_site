@@ -250,6 +250,19 @@ interface Ready {
   m: Mat;
 }
 
+/**
+ * How resolved the drawing is.
+ *
+ * `flat` and `clay` are the two study stages on every plate, and they are both
+ * *subtractive* — they take work away rather than adding a second pipeline.
+ * `flat` skips the per-vertex gradient, which is the expensive path, so it also
+ * doubles as the reduced-quality pass while a plate is being dragged.
+ */
+export type Treatment = 'flat' | 'clay' | 'render';
+
+/** One neutral body, standing in for the whole material list at the clay stage. */
+const CLAY: Mat = { tone: 0.82, spec: 0.06, gloss: 18 };
+
 export interface Scene {
   mesh: Mesh;
   mats: Mat[];
@@ -258,6 +271,8 @@ export interface Scene {
   ground?: number;
   /** Radius of that shadow. */
   shadow?: number;
+  /** Defaults to the finished render. */
+  treatment?: Treatment;
 }
 
 export function renderScene(
@@ -267,7 +282,14 @@ export function renderScene(
   cx: number,
   cy: number,
 ) {
-  const { mesh, mats, cam } = scene;
+  const { mesh, cam } = scene;
+  const treatment = scene.treatment ?? 'render';
+
+  /* Clay swaps the whole material list for one neutral body: no accent, no
+     glass, nothing that carries meaning. It is the grey model stage, where the
+     only thing under discussion is form. */
+  const mats = treatment === 'clay' ? [CLAY] : scene.mats;
+  const matFor = (i: number) => (treatment === 'clay' ? CLAY : mats[i] ?? mats[0]);
 
   if (scene.shadow) contactShadow(ctx, scene, p, cx, cy);
 
@@ -283,14 +305,17 @@ export function renderScene(
     const c: V3 = [ccx * k, ccy * k, ccz * k];
 
     const fn = faceNormal({ v: view, m: poly.m } as Poly);
-    const m = mats[poly.m] ?? mats[0];
+    const m = matFor(poly.m);
 
     /* A face is visible when its normal points back toward the camera. Skip
        the test for anything see-through: the whole point of glass is that the
        far wall shows through it. */
     if ((m.alpha ?? 1) >= 1 && dot(fn, c) > 0) continue;
 
-    const vn = poly.vn?.map((n) => rotate(n, cam));
+    /* At the blocked stage the vertex normals are ignored on purpose — one
+       tone per polygon is what makes facets visible, and it is also what makes
+       this pass cheap enough to run while the plate is being dragged. */
+    const vn = treatment === 'flat' ? undefined : poly.vn?.map((n) => rotate(n, cam));
     queue.push({
       pts: view.map((v) => project(v, cam, cx, cy)),
       vals: view.map((v, i) => shade(vn ? vn[i] : fn, v, m)),
@@ -307,7 +332,12 @@ export function renderScene(
     r.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
     ctx.closePath();
 
-    const paint = gradientFor(ctx, r.pts, r.vals, r.m, p);
+    /* One flat fill per face at the blocked stage. Fitting a gradient plane is
+       the single most expensive thing in this loop, so skipping it is both the
+       look and the frame budget. */
+    const paint = treatment === 'flat'
+      ? css(toneOf(r.vals.reduce((s, v) => s + v, 0) / r.vals.length, r.m, p))
+      : gradientFor(ctx, r.pts, r.vals, r.m, p);
     const alpha = r.m.alpha ?? 1;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = paint;
@@ -362,66 +392,42 @@ function contactShadow(
   ctx.restore();
 }
 
-/* ── seams ───────────────────────────────────────────────────────────────── */
+/* ── inked lines ─────────────────────────────────────────────────────────── */
 
 /**
- * A great circle drawn on a sphere, hidden where it passes round the back.
+ * A polyline in model space, projected and stroked over the geometry.
  *
- * Classifying faces into panels was the first attempt and it read as
- * camouflage: at any subdivision cheap enough to draw seven times, the patch
- * boundary follows triangle edges, so a seam comes out as a zigzag. A curve
- * sampled on the sphere and clipped at the silhouette is exact at any
- * subdivision, and costs one polyline instead of a finer mesh.
+ * This began as a great-circle seam for a ball. Classifying faces into panels
+ * was the first attempt at those seams and it read as camouflage: at any
+ * subdivision cheap enough to draw seven times, the patch boundary follows
+ * triangle edges, so a seam comes out as a zigzag. A curve sampled in model
+ * space is exact at any subdivision and costs one polyline instead of a finer
+ * mesh — and generalised, it is also how a trace gets onto a screen, or an
+ * arrow onto a page, without modelling either as extruded bars.
  */
-export function seam(
+export function stroke3d(
   ctx: CanvasRenderingContext2D,
   cam: Cam,
-  centre: V3,
-  axis: V3,
-  r: number,
+  points: V3[],
   cx: number,
   cy: number,
   colour: string,
   width = 1.4,
-  steps = 190,
 ) {
-  const a = norm(axis);
-  // Any vector not parallel to the axis gives the first basis direction.
-  const seed: V3 = Math.abs(a[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
-  const u = norm([
-    a[1] * seed[2] - a[2] * seed[1],
-    a[2] * seed[0] - a[0] * seed[2],
-    a[0] * seed[1] - a[1] * seed[0],
-  ]);
-  const v = norm([
-    a[1] * u[2] - a[2] * u[1],
-    a[2] * u[0] - a[0] * u[2],
-    a[0] * u[1] - a[1] * u[0],
-  ]);
+  if (points.length < 2) return;
 
   ctx.save();
   ctx.strokeStyle = colour;
   ctx.lineWidth = width;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
-  let drawing = false;
   ctx.beginPath();
-  for (let i = 0; i <= steps; i++) {
-    const t = (i / steps) * Math.PI * 2;
-    const c = Math.cos(t), s = Math.sin(t);
-    const n: V3 = [u[0] * c + v[0] * s, u[1] * c + v[1] * s, u[2] * c + v[2] * s];
-    const p: V3 = [centre[0] + n[0] * r, centre[1] + n[1] * r, centre[2] + n[2] * r];
-
-    const pc = toView(p, cam);
-    // Front-facing when the surface normal leans back toward the camera.
-    if (dot(rotate(n, cam), pc) < -0.02) {
-      const [sx, sy] = project(pc, cam, cx, cy);
-      if (drawing) ctx.lineTo(sx, sy);
-      else { ctx.moveTo(sx, sy); drawing = true; }
-    } else {
-      drawing = false;
-    }
-  }
+  points.forEach((p, i) => {
+    const [sx, sy] = project(toView(p, cam), cam, cx, cy);
+    if (i) ctx.lineTo(sx, sy);
+    else ctx.moveTo(sx, sy);
+  });
   ctx.stroke();
   ctx.restore();
 }
