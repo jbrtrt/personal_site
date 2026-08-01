@@ -44,11 +44,29 @@ interface View {
    * flattening the clay stage: shading says matte, projection says drawing.
    */
   lens?: number;
+  /**
+   * Turntable angle for this view, **absolute** — it replaces the plate's own
+   * rather than offsetting it.
+   *
+   * Absolute because an offset cannot be shared. Every plate is authored at a
+   * yaw near −0.5, so one offset lands each object somewhere different: +π/2
+   * swings NEPHRA's capsule end-on and it frames as a stub. That is the same
+   * failure the hand-tuned focal lengths had before `fitFor()` replaced them —
+   * seven numbers, each wrong in its own direction. A single absolute angle is
+   * one rule, and `fitFor` re-solves the framing for whatever it produces.
+   */
+  yaw?: number;
 }
 
 const VIEWS: View[] = [
   { treatment: 'line',   label: '01 LINE',     cx: 116, cy: 74,  ly: 136 },
-  { treatment: 'clay',   label: '02 CLAY',     cx: 344, cy: 74,  ly: 136, lens: 4 },
+  /* The clay study is the front elevation: square on, orthographic, matte. The
+     hero is the three-quarter. Shading alone could not separate them — the
+     silhouette never moved, so the two stayed the same picture at two sizes.
+     Yaw only, never pitch: a true elevation is pitch 0, and pitch 0 collapses
+     the flat objects — ACTIVEDOC's page and OCULA's slab become slivers. Each
+     plate keeps its own pitch, so this stays one rule that is safe for seven. */
+  { treatment: 'clay',   label: '02 CLAY',     cx: 344, cy: 74,  ly: 136, lens: 4, yaw: 0 },
   { treatment: 'render', label: '03 RENDERED', cx: 230, cy: 232, ly: 322 },
 ];
 
@@ -194,7 +212,12 @@ function fitFor(id: string, plate: Plate, mesh: Mesh, v: View): Fit {
   if (hit) return hit;
 
   // Project at a reference focal length; everything below is a ratio.
-  const probe: Cam = { ...plate.cam, dist: plate.cam.dist * (v.lens ?? 1), f: 1000, ox: 0, oy: 0 };
+  const probe: Cam = {
+    ...plate.cam,
+    yaw: v.yaw ?? plate.cam.yaw,
+    dist: plate.cam.dist * (v.lens ?? 1),
+    f: 1000, ox: 0, oy: 0,
+  };
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const poly of mesh) {
     for (const v of poly.v) {
@@ -232,7 +255,9 @@ function camFor(plate: Plate, id: string, v: View, fit: Fit): Cam {
     f: fit.f,
     ox: fit.ox,
     oy: fit.oy,
-    yaw: plate.cam.yaw + (v === HERO ? a?.yaw ?? 0 : 0),
+    /* A view's own yaw wins over the plate's. Only the hero carries the drag
+       angle, and the hero declares no yaw of its own, so the two never meet. */
+    yaw: (v.yaw ?? plate.cam.yaw) + (v === HERO ? a?.yaw ?? 0 : 0),
     pitch: plate.cam.pitch + (v === HERO ? a?.pitch ?? 0 : 0),
   };
 }

@@ -243,10 +243,36 @@ that only shows up at the size the studies are actually displayed at, about
 object that is mostly one neutral shell is the finished render with the accent
 removed. What survives at that size is a change of medium — outlines, then a grey
 model, then the object. `line` is a hidden-line drawing (fills in the page's own
-ground, only silhouette / crease / boundary edges stroked); `clay` is matte, has
-no highlight, no rim, no second light, a value range squeezed to a third of the
-ramp, **and a ×4 lens** so its projection is orthographic in all but name.
-Judge any change to these from a plate shot, never from the code.
+ground, only silhouette / crease / boundary edges stroked).
+
+That fixed stage 01 and **not stage 02**, and Ben's second verdict was that the
+clay study and the hero were still the same picture on all seven boards. The
+number that explains it: mean lightness of the two stages measured **0.010 to
+0.056 apart on every board**, four of them within 0.012. `CLAY` was `tone: 0.86`
+against a `SHELL` of `0.90` — a 4% difference on the material that covers most of
+every object, so "strip the materials" stripped nothing visible. Clay was the
+hero at half size.
+
+Clay is now three things at once, because no one of them was enough:
+
+- **darker** — `tone: 0.38`, a matte ramp of `0.40 + 0.46·lam`, no highlight, no
+  rim, no second light. Overall lightness is what the eye compares first.
+- **faceted** — face normals, the same path the drag pass uses. Contributes least;
+  a 32-segment lathe barely reads as faceted at 198×100.
+- **a front elevation** — `yaw: 0` absolute, plus the ×4 lens. Shading alone could
+  never have done it: the silhouette never moved, so the two stayed one picture at
+  two sizes.
+
+The hero moved up to meet it — diffuse `0.66 → 0.74`, fill `0.20 → 0.22`, rim
+`0.16 → 0.20`, `AMB 0.20 → 0.22` — because three boards have heroes that are dark
+for material reasons (NEPHRA's smooth capsule, LANTERN's big `TRIM` screen,
+FLOPCHECK's matte skin) and a grey model cannot get far enough below a render
+that is already nearly grey.
+
+**`scripts/stages.mjs` is the gate**, and its thresholds were set from a recorded
+baseline rather than invented. Judge any change to these from a plate shot as
+well — the script proves the two pictures differ, only looking proves the clay
+study still reads as the object.
 
 **⚠️ `extrude` and `bevelBox` wind polygons inward, and this is deliberate now.**
 The backface test therefore drops the face *nearest* the camera and keeps the far

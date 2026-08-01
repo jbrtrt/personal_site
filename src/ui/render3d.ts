@@ -172,7 +172,7 @@ export const projectPoint = (p: V3, cam: Cam, cx: number, cy: number) =>
    each object's turntable angle would make the set look unrelated. */
 const KEY: V3 = norm([-0.52, 0.74, 0.62]);
 const FILL: V3 = norm([0.68, 0.18, 0.42]);
-const AMB = 0.20;
+const AMB = 0.22;
 
 function shade(n: V3, v: V3, m: Mat, matte = false): number {
   const lam = Math.max(dot(n, KEY), 0);
@@ -185,7 +185,7 @@ function shade(n: V3, v: V3, m: Mat, matte = false): number {
      them leaves the stage almost flat — which is the point of it. The lit and
      unlit sides of a form stay about a third of the ramp apart, enough to tell
      them apart and not enough to model with. */
-  if (matte) return 0.44 + 0.4 * lam;
+  if (matte) return 0.40 + 0.46 * lam;
 
   const len = Math.hypot(v[0], v[1], v[2]) || 1;
   const eye: V3 = [-v[0] / len, -v[1] / len, -v[2] / len];
@@ -195,9 +195,17 @@ function shade(n: V3, v: V3, m: Mat, matte = false): number {
 
   /* A little light picked up at grazing angles. It is what separates a dark
      body from a dark background without drawing an outline around it. */
-  const rim = 0.16 * (1 - Math.max(dot(n, eye), 0)) ** 3;
+  const rim = 0.20 * (1 - Math.max(dot(n, eye), 0)) ** 3;
 
-  return AMB + 0.66 * lam + 0.20 * fil + s + rim;
+  /* Lifted from 0.66 diffuse / 0.20 fill / 0.16 rim. Darkening clay opened most
+     of the gap to the hero, but three boards stayed inside it because their
+     heroes are dark to begin with — NEPHRA's smooth capsule, LANTERN's big
+     TRIM screen and FLOPCHECK's matte skin measured 0.395 to 0.419 mean, against
+     a clay stage that now sits around 0.35. A grey model cannot get far enough
+     below a render that is itself nearly grey, so the finished stage moves up to
+     meet it. Highlights clamp on METAL at these gains, which is what a highlight
+     on polished metal should do. */
+  return AMB + 0.74 * lam + 0.22 * fil + s + rim;
 }
 
 function toneOf(value: number, m: Mat, p: Palette): RGB {
@@ -291,8 +299,17 @@ interface Ready {
  */
 export type Treatment = 'line' | 'flat' | 'clay' | 'render';
 
-/** One neutral body, standing in for the whole material list at the clay stage. */
-const CLAY: Mat = { tone: 0.86, spec: 0, gloss: 1 };
+/**
+ * One neutral body, standing in for the whole material list at the clay stage.
+ *
+ * The albedo is the point. This was 0.86 against a `SHELL` of 0.90 — a 4%
+ * difference on the material that covers most of every object here, which is why
+ * "strip the materials" removed nothing anyone could see and the clay study came
+ * out as the hero at half size. Measured, the two stages sat within 0.056 of each
+ * other in mean lightness on all seven boards, and on four of them within 0.012.
+ * A grey model is *darker* than a finished white render; at 0.52 it reads as one.
+ */
+const CLAY: Mat = { tone: 0.38, spec: 0, gloss: 1 };
 
 export interface Scene {
   mesh: Mesh;
@@ -347,10 +364,16 @@ export function renderScene(
        far wall shows through it. */
     if ((m.alpha ?? 1) >= 1 && dot(fn, c) > 0) continue;
 
-    /* The drag pass ignores vertex normals: fitting a gradient plane per face
-       is the single most expensive thing in this loop, and one tone per
-       polygon is what makes the frame budget. */
-    const vn = treatment === 'flat' ? undefined : poly.vn?.map((n) => rotate(n, cam));
+    /* Face normals rather than vertex normals, for two different reasons that
+       want the same code. The drag pass needs the speed — fitting a gradient
+       plane per face is the most expensive thing in this loop. Clay wants the
+       *look*: one tone per polygon is a faceted body, which is what a foam or
+       CNC mock-up is. It contributes less than the albedo does at study size —
+       a 32-segment lathe barely reads as faceted at 198x100 — but it is free
+       and it pushes the same way. */
+    const vn = treatment === 'flat' || matte
+      ? undefined
+      : poly.vn?.map((n) => rotate(n, cam));
     queue.push({
       pts: view.map((v) => project(v, cam, cx, cy)),
       vals: view.map((v, i) => shade(vn ? vn[i] : fn, v, m, matte)),
@@ -367,7 +390,11 @@ export function renderScene(
     r.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
     ctx.closePath();
 
-    const paint = treatment === 'flat'
+    /* Both faceted passes take the flat fill. Clay would reach the same picture
+       through `gradientFor` — every vertex carries the same face normal, so the
+       plane it fits is level and it falls back to a single tone — but only after
+       paying for the least-squares solve. */
+    const paint = treatment === 'flat' || matte
       ? css(toneOf(r.vals.reduce((s, v) => s + v, 0) / r.vals.length, r.m, p))
       : gradientFor(ctx, r.pts, r.vals, r.m, p);
     const alpha = r.m.alpha ?? 1;
