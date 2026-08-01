@@ -41,6 +41,11 @@
 .sec--hero {
   min-height: 100svh;
   display: grid;
+  /* A grid column defaults to sizing against its widest item's max-content, so
+     the name set in display type pushed the track past the viewport and took
+     32px of horizontal scroll with it. minmax(0, 1fr) is what stops a grid
+     track growing beyond its container. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
   /* clear the strip chart pinned to the bottom of the viewport */
   padding-block: var(--s6) calc(22vh + var(--s4));
@@ -106,14 +111,18 @@
    wide laptop with a short viewport is the case that broke. */
 @media (max-height: 900px) {
   .sec--hero { padding-block: var(--s4) calc(22vh + var(--s2)); }
-  .hero__name { font-size: clamp(3.2rem, 9.5vh, 7rem); margin-bottom: var(--s2); }
+  /* min() of a height and a width term: a short *wide* laptop is limited by
+     height, a tall *narrow* phone by width. A bare vh here set 80px type on a
+     390x844 phone and pushed 12px of horizontal scroll. Note this rule beats
+     the --t-hero override further down, because it sets font-size directly. */
+  .hero__name { font-size: clamp(2.6rem, min(9.5vh, 13.5vw), 7rem); margin-bottom: var(--s2); }
   .hero__role { margin-bottom: var(--s3); }
   .hero__lede { font-size: var(--t-md); }
   .chrome--top { margin-bottom: var(--s2); }
 }
 @media (max-height: 740px) {
   .hero__lede { font-size: var(--t-base, 1rem); max-width: 26rem; }
-  .hero__name { font-size: clamp(2.6rem, 8.5vh, 5rem); }
+  .hero__name { font-size: clamp(2.2rem, min(8.5vh, 13vw), 5rem); }
 }
 
 .chrome--cue {

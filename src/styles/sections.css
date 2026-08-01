@@ -74,7 +74,15 @@
 
 
 /* ═══════════ 02 · THE GAP ═══════════════════════════════════ */
-.sec--gap { padding-block: var(--s8); text-align: center; }
+.sec--gap {
+  padding-block: var(--s8);
+  text-align: center;
+  /* The scrim below is deliberately wider than its column so it can feather out
+     past the text; clip keeps that bleed from becoming page-wide scroll.
+     `clip` rather than `hidden` — `hidden` would make this a scroll container
+     and break the sticky portrait above it. */
+  overflow-x: clip;
+}
 
 /* The inversion runs underneath this section, which means the background
    behind the type passes through every tone between cream and near-black.

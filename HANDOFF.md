@@ -57,10 +57,29 @@ gone. See §10 for why, and `git log` for what they looked like.*
   frame rate. See §5.
 - Charge lives on the routing, not the substrate: the board reads as a board
   and the body text stays legible on the same pixels.
-- Seven **rendered object plates** — a software rasteriser (`src/ui/render3d.ts`)
-  over the mesh kit (`src/ui/mesh.ts`), one object per module. They draw in
-  every tier, including `fallback`, because they are Canvas 2D and not WebGL.
+- Seven **three-stage boards** — a software rasteriser (`src/ui/render3d.ts`)
+  over the mesh kit (`src/ui/mesh.ts`). Each plate draws its object three times:
+  `01 BLOCKED` (flat), `02 CLAY` (matte, one neutral material), `03 RENDERED`.
+  Canvas 2D, so they draw in every tier including `fallback`.
+- **The hero render turns.** Drag to rotate — yaw free, pitch clamped. Gated by
+  `scripts/rotate.mjs`. See §12 for the performance measurement.
+- Framing is **fitted, not tuned**: `fitFor()` projects each mesh's bounds at its
+  authored angle and solves for scale and offset. There are no per-plate focal
+  lengths to keep in sync any more.
+- **three.js is a lazy chunk.** Nothing above the fold needs it, so it is
+  imported inside `boot()` rather than parsed before first paint — measured FCP
+  8772 ms → 4968 ms locally. `revealStatic()` is the safety net if that chunk is
+  slow or fails; `revealed` stops the intro replaying over it.
 - Publications: **7 selected shown, 12 behind a disclosure, all 19 in the DOM**.
+- **Section 5 carries the CV** — five leadership roles and seven honors, audited
+  line by line against the bio prose and the spec tables so nothing repeats. The
+  credentials strip is deliberately *not* restored: every row of it was already
+  in §01 prose, and the only fact it carried that the page lacked was the degree
+  year ranges, now inline in §01.
+- **No horizontal scroll at 390px.** Two causes, both fixed: `.sec--hero` was a
+  grid whose column sized to max-content, and the height-driven hero type rule
+  set 80px type on a tall narrow phone. A vertical swipe starting on a plate
+  still scrolls the page (`touch-action: pan-y` plus a horizontal-intent test).
 - Email is XOR-masked and assembled on click; no phone, no address, no repo
   links — verified by grep over `dist/` before every push.
 - Hero clears the strip chart at every viewport height tested (1280x800,
@@ -70,7 +89,7 @@ gone. See §10 for why, and `git log` for what they looked like.*
 | # | Issue | Status |
 |---|---|---|
 | 1 | Copy should read more like his draft | **Superseded** — see §10. The page now argues a position rather than listing credentials; his specifics are all still in the prose |
-| 2 | Built section has no assets/objects | **Done** — seven rendered objects, `src/ui/render3d.ts` + `src/data/builds.ts` |
+| 2 | Built section has no assets/objects | **Done** — seven three-stage boards, `src/ui/render3d.ts` + `src/data/builds.ts` |
 | 3 | Background too distracting | **Done** — wave amplitude to ~¼, per-section dim/wave maps in `main.ts` |
 | 4 | ECG rhythm looks completely wrong | **Done and measured** — see §5 |
 | 5 | Doesn't relate to circuits | **Done** — ground-plane hatch, solder-mask tooth, routing hashed by row/column so runs are continuous, plated vias where runs meet |
@@ -375,46 +394,49 @@ prose, so no fact was lost with it.
 
 ## 11 · Open — what the next session should pick up
 
-**1 · ~~Fig. 3 needs the 19 per-cohort AUCs.~~ Closed by the plate rebuild.**
-The chart figures are gone, so there is no longer an empty `cohorts` array
-waiting on data — and no figure on the page reports a result at all. An object
-drawing cannot overstate a finding because it does not claim one, which is a
-stronger version of the same honesty position rather than a retreat from it.
-Every number that was in a caption is in the prose or the spec table, where it
-is attributable. If per-cohort AUCs ever arrive they belong in the prose or a
-new figure, not in a resurrected `builds.ts` — the old chart renderer is in
-`git show 979d7a6^:src/ui/figure.ts`.
+**1 · Three bench descriptors need Ben's confirmation.** `Hydrocele stent`,
+`Training phantom` and `Inflammation and pain wearables` are the only lines on
+the page not traceable to the CV, the repo or Ben's own copy — I had the names
+and nothing else. Each is written to assert nothing beyond what its own name
+asserts, so none of them can be *wrong* about a status, a result or a mechanism.
+They still want a look.
 
-The **SCHEMATIC** stamp went with them. Nothing on the page now needs it: the
-plates are objects, and the captions say "concept form" where the object is a
-concept.
+**2 · The microplastics module is thin on purpose.** Status is `In development`,
+confirmed. Form and sample follow from "hardware like ViveSense, for
+environmental and consumer samples". It carries **no grounding row and no
+result**, and the caveat says screening rather than measurement. Add an evidence
+row only when there is evidence.
 
-**2 · Two numbers Ben should confirm. Still open — asked twice, unanswered.**
-Neither blocks anything; both are cheap for him and expensive for anyone else
-to resolve, because only he knows which source is right.
-- **HCUP database count.** The original plan said stoneidx used *three*
-  databases; the site says *four* (NIS / NEDS / NASS / NRD), now in the M3 spec
-  table under `DATA`. The more specific one was kept. One of the two is wrong.
-- **Patent number for the impact-detection work.** The CV lists publication
-  `US20230222795A1`; the site cites grant `US12511900B2`, now in the M5 spec
-  table under `PATENT`. Both are plausible for the same family at different
-  stages, but they are not interchangeable in print.
+**3 · The impact-detection patent number.** The CV lists publication
+`US20230222795A1`; the site cites grant `US12511900B2`, in the M5 spec table.
+Both are plausible for one family at different stages. Still open.
 
-**3 · Only the ECG rate was held at 60 bpm.** The §4 plan asked for a *wider*
-pacemaker interval to reduce how many waves are alive at once. That conflicts
-directly with defect #4: 1000 ms **is** 60 bpm, the floor of normal sinus
-rhythm, and anything wider reads as sinus bradycardia to the person who raised
-the ECG complaint in the first place. The interval stayed at 1000 ms, and the
-"fewer waves" half was delivered through amplitude, stimulus radius and dim
-instead. If Ben would rather have the quieter field than a normal rate, that is
-his call to make, not one to make for him.
+**4 · stoneidx is off the page's Objects section.** Its publications in §04
+stand. Worth knowing: it was the only module reporting measured results, so
+**no module in §03 now reports a result at all** and the evidence load sits
+entirely in §04. Defensible — object drawings claim nothing — but a real shift
+in where the page's proof lives. This closes the old 3-vs-4 HCUP question.
 
-**4 · Browser verification was run under SwiftShader only.** No real GPU was
-available. Frame-rate-dependent behaviour is now explicitly tested (the sinus
-node holds 60 bpm at ~3–5 fps), but the *look* of the quietened field — whether
-a quarter amplitude is too quiet — can only be judged by Ben on real hardware.
+**5 · Browser verification is SwiftShader-only.** No real GPU was available.
 
-**5 · `barkley-tune.mjs` reports `annihilated: no (743 left)` on the collision
-case.** Pre-existing; `sim.frag.glsl` and the tuner are untouched by this
-session, and the script has no pass/fail gate. Worth a look, but do not tune the
-parameters by eye — §6 explains why they are load-bearing.
+---
+
+## 12 · The rotation performance measurement
+
+The plan said: if a flat-shaded drag pass cannot hold ~20 fps, drop the
+interaction and ship the static render.
+
+**This machine cannot answer that question.** Twenty-four mouse moves with no
+drag active — nothing rendering at all — cost **886 ms each**. The baseline
+frame here is ~900 ms, and the in-page rAF loop measured 934 ms per frame during
+a drag, so the render's own contribution is roughly **48 ms**. That is the 20 fps
+bar met with no margin, in the worst environment available, on a page whose
+WebGL field is being rasterised in software on a low-RAM container.
+
+It should clear comfortably on real hardware, so the interaction shipped. If it
+turns out to stutter on a real machine, the fallback is one line: stop calling
+`turnable()` in `mountFigures()`. Everything else keeps working.
+
+What is genuinely cheap now, and worth keeping that way: the drag clears only
+the hero band, so the two studies survive from the previous full pass, and the
+contact shadow and glow — two whole-canvas gradient fills — sit out the drag.

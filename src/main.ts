@@ -14,7 +14,7 @@ import Lenis from 'lenis';
 
 import { detect } from './core/capability';
 import { Pointer } from './core/pointer';
-import { Field } from './webgl/field/Field';
+import type { Field as FieldClass } from './webgl/field/Field';
 import { Trace } from './ecg/Trace';
 import { Rhythm } from './ecg/waveform';
 import { wireEmail } from './ui/email';
@@ -63,20 +63,51 @@ const traceCanvas = document.getElementById('trace') as HTMLCanvasElement | null
 const rail = document.querySelector<HTMLElement>('.rail');
 const rateEl = document.querySelector<HTMLElement>('[data-rate]');
 
-/* ── no WebGL: the document still has to work ───────────────── */
-if (cap.tier === 'fallback' || !fieldCanvas || !traceCanvas) {
-  fieldCanvas?.remove();
-  traceCanvas?.remove();
+/**
+ * Show the page with no simulation behind it.
+ *
+ * Used when there is no WebGL at all, and again as the safety net if the
+ * simulation chunk is slow or fails to arrive — the hero starts wiped out and
+ * transparent, so anything that leaves `boot` unfinished would otherwise leave
+ * a reader looking at an empty screen.
+ */
+let revealed = false;
+function revealStatic() {
+  if (revealed) return;
+  revealed = true;
   root.dataset.ground = 'paper';
   gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
   gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
   document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
-  document.querySelector('[data-egg]')?.removeAttribute('hidden');
-} else {
-  boot(fieldCanvas, traceCanvas);
 }
 
-function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
+/* ── no WebGL: the document still has to work ───────────────── */
+if (cap.tier === 'fallback' || !fieldCanvas || !traceCanvas) {
+  fieldCanvas?.remove();
+  traceCanvas?.remove();
+  revealStatic();
+  document.querySelector('[data-egg]')?.removeAttribute('hidden');
+} else {
+  void boot(fieldCanvas, traceCanvas);
+}
+
+/* three.js is a third of a megabyte and nothing above the fold needs it, so it
+   is fetched as its own chunk rather than parsed before first paint. That puts
+   a network round trip between load and the field appearing, which is the
+   reason for the timeout below. */
+async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
+  const safety = window.setTimeout(revealStatic, 1500);
+  let Field: typeof FieldClass;
+  try {
+    ({ Field } = await import('./webgl/field/Field'));
+  } catch {
+    window.clearTimeout(safety);
+    fieldEl.remove();
+    revealStatic();
+    return;
+  }
+  window.clearTimeout(safety);
+
   const field = new Field(fieldEl, cap);
   const rhythm = new Rhythm();
   const trace = new Trace(traceEl, rhythm);
@@ -162,7 +193,14 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   }
 
   /* ── the first five seconds ───────────────────────────────── */
-  if (cap.tier === 'calm') {
+  if (revealed) {
+    /* The safety net got there first. Bring the field up underneath what is
+       already on screen rather than wiping the name back out to replay an
+       entrance the reader has seen. */
+    field.reveal = 1;
+    traceEl.setAttribute('data-on', '');
+    rail?.setAttribute('data-on', '');
+  } else if (cap.tier === 'calm') {
     /* Reduced motion gets the composed result, not a faster version of
        the animation: one still frame of tissue, and a strip already
        carrying a readable rhythm rather than two lonely beats. */
@@ -172,6 +210,7 @@ function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     }
     field.reveal = 1;
 
+    revealed = true;
     gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
     gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
     document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
