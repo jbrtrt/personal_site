@@ -226,9 +226,15 @@ function camFor(plate: Plate, id: string, v: View, fit: Fit): Cam {
   };
 }
 
+/** The hero's share of the board — the only region a drag ever touches. */
+const HERO_TOP = 150;
+
 /**
- * @param quick  Reduced quality: the hero drops to the blocked pass and the
- *   studies are not redrawn at all. Used while a plate is being dragged.
+ * @param quick  Reduced quality, for use while a plate is being dragged: the
+ *   hero drops to the blocked pass, and the studies are not redrawn at all.
+ *   Only the hero band is cleared, so the studies simply survive from the last
+ *   full pass — redrawing them every frame was three times the work for two
+ *   pictures that had not changed.
  */
 function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = false) {
   const ctx = canvas.getContext('2d');
@@ -239,25 +245,28 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
   if (canvas.width !== wantW) {
     canvas.width = wantW;
     canvas.height = Math.round(H * dpr);
+    quick = false;                  // nothing to preserve on a fresh buffer
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0, quick ? HERO_TOP : 0, W, quick ? H - HERO_TOP : H);
 
   const p = palette(canvas);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.textBaseline = 'alphabetic';
 
-  registration(ctx, p);
+  if (!quick) registration(ctx, p);
 
   const mesh = meshFor(id, plate);
   const fit = fitFor(id, plate, mesh);
 
   for (const v of VIEWS) {
-    const cam = camFor(plate, id, v, fit);
-    const treatment: Treatment = quick && v === HERO ? 'flat' : v.treatment;
+    if (quick && v !== HERO) continue;
 
-    if (v === HERO) glow(ctx, plate, cam, v, p);
+    const cam = camFor(plate, id, v, fit);
+    const treatment: Treatment = quick ? 'flat' : v.treatment;
+
+    if (v === HERO && !quick) glow(ctx, plate, cam, v, p);
 
     renderScene(
       ctx,
@@ -266,7 +275,10 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
         mats: plate.mats,
         cam,
         ground: plate.ground,
-        shadow: plate.shadow,
+        /* The shadow is a full-canvas radial gradient and the glow above is
+           another; neither is legible at drag speed, so both sit out the quick
+           pass and come back on release. */
+        shadow: quick ? 0 : plate.shadow,
         treatment,
       },
       p,
@@ -282,6 +294,20 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
           s.width ?? 1.4);
       }
     }
+  }
+
+  if (quick) {
+    // The type that lives in the cleared band has to come back with it.
+    ctx.fillStyle = p.label;
+    ctx.globalAlpha = 0.7;
+    label(ctx, HERO.label, HERO.cx, HERO.ly, 'center', 7);
+    ctx.globalAlpha = 1;
+    for (const n of plate.notes) leader(ctx, n, camFor(plate, id, HERO, fit), p);
+    ctx.fillStyle = p.label;
+    ctx.globalAlpha = 0.75;
+    label(ctx, plate.designation, W - 24, H - 8, 'right');
+    ctx.globalAlpha = 1;
+    return;
   }
 
   /* Grain, confined to what has actually been drawn.
