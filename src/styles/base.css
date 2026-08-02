@@ -146,12 +146,8 @@ main { position: relative; z-index: var(--z-content); }
   color: var(--fg-faint);
   margin-bottom: var(--s3);
 }
-.foot__sep { opacity: 0.5; }
-
-/* The colophon explains two simulations, which is more than a chrome line can
-   carry: `.chrome` uppercases, and a paragraph of tracked mono capitals is a
-   wall rather than something anyone reads. Body face, faint ink, and a measure
-   short enough that the lines stay scannable at the very bottom of a long page. */
+/* Out of `.chrome` and into the body face: `.chrome` uppercases, and a sentence
+   of tracked mono capitals is something people look at rather than read. */
 .foot__note {
   max-width: 44rem;
   margin-bottom: var(--s2);
@@ -161,14 +157,6 @@ main { position: relative; z-index: var(--z-content); }
   text-wrap: pretty;
 }
 .foot__note:last-child { margin-bottom: 0; }
-/* The two state variables are named in the prose, so they are set as symbols
-   rather than emphasised words. */
-.foot__note b {
-  font-family: var(--mono);
-  font-weight: 500;
-  font-style: normal;
-  color: var(--fg-soft);
-}
 
 /* ── motion policy ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

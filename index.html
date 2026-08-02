@@ -3,15 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Benjamin Greenfield — Physician-Engineer</title>
-<meta name="description" content="Physician-engineer. Medical school at Tufts, biomedical engineering at Columbia. Building the instruments medicine hasn't built yet — fertility screening, artificial kidneys, stone risk, clinical AI." />
+<title>Benjamin Greenfield — Inventor, Physician-Engineer, Founder</title>
+<!-- Held under about 155 characters, which is where search results cut, and
+     kept naming only modules that are actually on the page. -->
+<meta name="description" content="Building from both sides of care — healthcare products for the problems patients and clinicians meet every day. Medicine at Tufts, engineering at Columbia." />
 <meta name="author" content="Benjamin Greenfield" />
 <meta name="color-scheme" content="light dark" />
 <meta name="theme-color" content="#F4EFE9" />
 
 <meta property="og:type" content="profile" />
-<meta property="og:title" content="Benjamin Greenfield — Physician-Engineer" />
-<meta property="og:description" content="Most builders never close the gap between medicine and engineering, because they've never been on the other side of the exam table." />
+<meta property="og:title" content="Benjamin Greenfield — Inventor, Physician-Engineer, Founder" />
+<!-- The hero lede, verbatim: a link preview should say what the page says. -->
+<meta property="og:description" content="I build technically ambitious healthcare products around the problems that patients and clinicians encounter every day." />
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23100E12'/%3E%3Cpath d='M2 17h6l2-5 3 11 3-15 3 12 2-3h9' fill='none' stroke='%23E8B04B' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E" />
 </head>
@@ -389,32 +392,12 @@
   <div class="foot__inner">
     <p class="foot__meta chrome">
       <span>&copy; <span data-year>2026</span> Benjamin Greenfield</span>
-      <span class="foot__sep" aria-hidden="true">&mdash;</span>
-      <span>Colophon</span>
     </p>
 
-    <p class="foot__note">The background is Barkley&rsquo;s excitable medium: two coupled
-      equations stepped in WebGL every frame. <b>u</b> is the depolarization front,
-      <b>v</b> the recovery behind it, and that lag alone is why two wavefronts
-      annihilate where they meet instead of crossing. Clicking drives the tissue to
-      threshold. Tracing a slow circle puts a second stimulus into the first wave&rsquo;s
-      refractory tail, breaking the front so it curls &mdash; which is how re-entry is
-      induced in an electrophysiology lab, and what an arrhythmia physically is.</p>
-
-    <p class="foot__note">The strip along the bottom is not a readout of that sheet. A
-      flat one has no atria, no AV node and no His&ndash;Purkinje system, so P, PR, QRS
-      and T have no mechanism to exist in it; the morphology is synthesized as a sum of
-      Gaussians, and its intervals &mdash; P&nbsp;92, PR&nbsp;155, QRS&nbsp;85,
-      QT&nbsp;383&nbsp;ms &mdash; are measured out of the waveform on every build rather
-      than asserted. What the two share is a clock, not arithmetic: the pacemaker
-      stimulates the tissue and schedules the beat, and so does every click, as an
-      ectopic that captures only if it falls outside the 300&nbsp;ms refractory period.
-      The sinus node is never reset by one, which is why a late ectopic is followed by a
-      compensatory pause and an early one is interpolated.</p>
-
-    <p class="foot__note">None of it is load-bearing. With reduced motion the medium
-      settles to a still frame; with no WebGL at all it is not there, and what is left is
-      the document everything else was built on top of.</p>
+    <p class="foot__note">The background is Barkley&rsquo;s excitable medium sharing a
+      pacemaker with an ECG model: two differential equations modeling depolarization
+      and refractory recovery, where ectopic stimuli perturb the wavefront and can
+      induce re-entry.</p>
   </div>
 </footer>
 
