@@ -189,7 +189,7 @@
   .mod:nth-child(even) > * { margin-left: 0; text-align: left; }
 }
 
-.mod__id { display: block; color: var(--accent); margin-bottom: var(--s1); }
+.mod__id { display: block; color: var(--accent); margin-bottom: var(--s2); }
 
 /* The project's own name. It used to be a small chrome line — "M1 · ViveSense,
    Inc." — over an editorial headline that ran under the plate, and the two said
@@ -208,16 +208,19 @@
 }
 
 /* Says what the object is, in the slot the editorial headline used to hold —
-   under the plate, leading the body. The name and the plate come first, so by
-   the time this is read the reader has already seen the thing; it is a caption
-   to the object rather than a second headline, which is why it is set in the
-   body face rather than the display one. */
+   under the plate, leading the body. Set exactly as it was when it opened the
+   module: display face, full ink. Dropping it to the body face and `--fg-soft`
+   was tried and is wrong — it stopped reading as a line of its own and became
+   an oversized first paragraph of the body underneath it. */
 .mod__belief {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40;
+  font-weight: 500;
   font-size: var(--t-lg);
-  line-height: 1.25;
-  color: var(--fg-soft);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
   margin-bottom: var(--s2);
-  max-width: 34rem;
+  max-width: 30rem;
   text-wrap: balance;
 }
 .mod:nth-child(even) .mod__belief { margin-left: auto; }
