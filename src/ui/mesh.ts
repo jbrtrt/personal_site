@@ -23,6 +23,18 @@ export interface Poly {
   vn?: V3[];
   /** Index into the object's material list. */
   m: number;
+  /**
+   * Which sub-assembly this face belongs to. The clay stage shades by this;
+   * nothing else reads it.
+   *
+   * Material and sub-assembly are different questions, and the plates need the
+   * second one. A dock, the stem above it and the optic head on the end of that
+   * are all the same moulded shell, so a study shaded by material paints the
+   * three of them one grey and the object arrives as a lump. Tagging by part is
+   * what lets the middle stage say *how many pieces this is, and where they
+   * divide* without drawing a single extra line.
+   */
+  part?: number;
 }
 
 export type Mesh = Poly[];
@@ -82,6 +94,7 @@ export function place(mesh: Mesh, xf: Xf): Mesh {
     v: p.v.map((q) => apply(q, xf)),
     vn: p.vn?.map((n) => norm(apply(n, rotOnly))),
     m: p.m,
+    part: p.part,
   }));
 }
 
@@ -89,6 +102,9 @@ export const merge = (...parts: Mesh[]): Mesh => parts.flat();
 
 /** Re-label every polygon in a mesh with one material. */
 export const material = (mesh: Mesh, m: number): Mesh => mesh.map((p) => ({ ...p, m }));
+
+/** Re-label every polygon in a mesh with one sub-assembly. See `Poly.part`. */
+export const group = (mesh: Mesh, part: number): Mesh => mesh.map((p) => ({ ...p, part }));
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 

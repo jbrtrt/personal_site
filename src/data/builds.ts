@@ -25,7 +25,7 @@
  */
 
 import {
-  bevelBox, capsuleProfile, cylinderProfile, extrude, lathe,
+  bevelBox, capsuleProfile, cylinderProfile, extrude, group, lathe,
   merge, norm, place, roundedRect, sphere, sweepArc,
   type Mesh, type V3,
 } from '../ui/mesh';
@@ -56,8 +56,23 @@ export interface Plate {
   glow?: { at: V3; r: number };
   /** Polylines inked over the finished object — a trace on a screen, an arrow
       on a page. Drawn only on the hero, and only at the rendered stage. */
-  strokes?: { points: V3[]; accent?: boolean; width?: number }[];
+  strokes?: Stroke[];
+  /**
+   * The clay stage only: what the object *does*, rather than what it is.
+   *
+   * The middle plate is the process study. It carries geometry the other two
+   * never show — a hand at the key, a sample being poured, the skeleton a pose
+   * model would extract — because an object drawn three times says the same
+   * thing three times however it is shaded. The line study is the outline and
+   * the hero is the finished thing; this is the one that explains.
+   *
+   * `build` is merged onto the plate's own mesh, so the framing solves for both
+   * together and the process element cannot drift off the object it belongs to.
+   */
+  clay?: { build?: () => Mesh; strokes?: Stroke[] };
 }
+
+interface Stroke { points: V3[]; accent?: boolean; width?: number }
 
 /* ── shared materials ─────────────────────────────────────────────────────
    Seven bodies cover all seven objects. Keeping the set small is what makes
@@ -67,12 +82,39 @@ const SHELL = MAT(0.90, 0.24, 26);          // moulded housing
 const TRIM = MAT(0.54, 0.30, 44);           // dark inset, recessed detail
 const SIGNAL = MAT(0.86, 0.34, 40, 1);      // the one accent element
 const METAL = MAT(0.96, 0.62, 70);          // machined, polished
-const SKIN = MAT(0.84, 0.16, 14);           // matte, soft falloff
+/* Raised from 0.84. It is the lowest albedo of the bodies and it clothes the
+   thinnest forms on the page — two figures made of tapered limbs — so it lost
+   twice: against the dark field, and against its own clay study, which is not
+   allowed to be darker than a render that is already the dimmest of the seven. */
+const SKIN = MAT(0.94, 0.16, 14);           // matte, soft falloff
 const GLASS = MAT(1.00, 0.55, 90, 0, 0.30); // see-through
 const WATER = MAT(0.94, 0.34, 60, 0, 0.20); // see-through, and heavier
 
 const STD: Mat[] = [SHELL, TRIM, SIGNAL, METAL, SKIN, GLASS, WATER];
 const M = { shell: 0, trim: 1, signal: 2, metal: 3, skin: 4, glass: 5, water: 6 };
+
+/* ── shared sub-assemblies ────────────────────────────────────────────────────
+ *
+ * Five slots, and every object is divided into the same five. The clay stage
+ * shades by these rather than by material (see `PART_TONES` in `render3d.ts`),
+ * which is the whole of its assembly reading — no extra lines on the drawing.
+ *
+ * Five and not seven because seven boards have to read as one set: a slot that
+ * only two objects use tells you nothing about either. Not every object fills
+ * every slot, and an object that has no `frame` simply skips it rather than
+ * inventing one. */
+const P = {
+  /** The housing, the chassis, the largest thing. */
+  body: 0,
+  /** What carries the working parts. */
+  frame: 1,
+  /** What actually does the job. */
+  works: 2,
+  /** What a person touches or reads. */
+  face: 3,
+  /** What passes through — the sample, the card, the person. */
+  subject: 4,
+};
 
 /**
  * A raised band around a cylinder, chamfered down to meet it exactly.
@@ -132,7 +174,16 @@ function optic(): Mesh {
   const barrel = place(lathe(cylinderProfile(0.12, 0.14), 20, M.metal), { pos: [0, 0.55, 0.2] });
   const lens = place(lathe(cylinderProfile(0.095, 0.03), 20, M.signal), { pos: [0, 0.465, 0.2] });
 
-  return merge(dock, bay, readout, slide, window_, stem, collar, arm, joint, head, barrel, lens, ...feet);
+  /* Five pieces, and the split is the object's argument: a dock that stays on
+     the counter, a stem that positions, an optic that comes off it, a bay and a
+     readout the user deals with, and a consumable that passes through. */
+  return merge(
+    group(merge(dock, ...feet), P.body),
+    group(merge(stem, collar, arm), P.frame),
+    group(merge(joint, head, barrel, lens), P.works),
+    group(merge(bay, readout), P.face),
+    group(merge(slide, window_), P.subject),
+  );
 }
 
 /* ── M2 · NEPHRA ONE — the implant, unchanged ────────────────────────────── */
@@ -158,7 +209,15 @@ function implant(): Mesh {
     }),
   );
 
-  return merge(shell, band, seam, ...ports, ...cuffs);
+  /* Three pieces. The implant has no frame — the shell *is* the frame — and
+     nothing passes through it that a drawing can show, so those two slots stay
+     empty rather than being filled for symmetry. The ports take `face` because
+     they are the only part anyone handles. */
+  return merge(
+    group(merge(shell, seam), P.body),
+    group(band, P.works),
+    group(merge(...ports, ...cuffs), P.face),
+  );
 }
 
 /* ── M3 · Microplastics — the reader, and the cell in its path ───────────── */
@@ -229,7 +288,15 @@ function sampleCell(): Mesh {
     }),
   ]);
 
-  return merge(base, ...walls, well, cell, water, ...motes, ...optics, ...feet);
+  /* The cell, its water and the particulate are one sub-assembly — the sample.
+     It is the thing that arrives, gets read and leaves, and the instrument is
+     everything else. */
+  return merge(
+    group(merge(base, ...feet), P.body),
+    group(merge(...walls, well), P.frame),
+    group(merge(...optics), P.works),
+    group(merge(cell, water, ...motes), P.subject),
+  );
 }
 
 /** The path itself — drawn, because a beam is not a solid. */
@@ -252,7 +319,13 @@ function recorder(): Mesh {
     }),
   );
 
-  return merge(body, screen, key, ...leads);
+  /* The leads are the works: everything the recorder actually does happens at
+     the far end of them. */
+  return merge(
+    group(body, P.body),
+    group(merge(...leads), P.works),
+    group(merge(screen, key), P.face),
+  );
 }
 
 /** Two beats of the trace on the recorder's screen, in model space. */
@@ -353,33 +426,46 @@ function person(p: Pose, m: number): Mesh {
   return merge(...parts);
 }
 
+/* Hoisted out of `contact()` so the clay stage can draw the skeleton these
+   describe. The pose *is* the method's input — the clay study inks it. */
+
+// The challenger: upright, weight forward, trailing leg through.
+const POSE_A: Pose = {
+  hip: [-0.7, 0.92, 0.08], neck: [-0.64, 1.42, 0.04], head: [-0.61, 1.6, 0.03],
+  shoulder: [[-0.81, 1.37, 0.05], [-0.47, 1.37, 0.04]],
+  elbow: [[-0.98, 1.12, 0.14], [-0.36, 1.14, -0.08]],
+  hand: [[-1.02, 0.86, 0.26], [-0.26, 0.9, -0.2]],
+  knee: [[-0.88, 0.5, -0.02], [-0.42, 0.58, 0.24]],
+  foot: [[-0.94, 0.06, -0.1], [-0.14, 0.44, 0.38]],
+};
+
+/* The one going down: hips dropping, torso rotating away, arms out. Placed
+   clearly forward in depth so the painter's sort never has to choose between
+   the two of them. */
+const POSE_B: Pose = {
+  hip: [0.22, 0.74, 0.52], neck: [0.42, 1.18, 0.46], head: [0.51, 1.34, 0.43],
+  shoulder: [[0.28, 1.14, 0.52], [0.58, 1.16, 0.4]],
+  elbow: [[0.16, 0.88, 0.68], [0.82, 1.3, 0.36]],
+  hand: [[0.02, 0.66, 0.8], [1.02, 1.46, 0.32]],
+  knee: [[0.04, 0.34, 0.62], [0.48, 0.4, 0.44]],
+  foot: [[-0.14, 0.04, 0.54], [0.7, 0.06, 0.38]],
+};
+
+/** Where the plate says the impulse arrived. */
+const CONTACT_AT: V3 = [-0.2, 0.46, 0.4];
+
 function contact(): Mesh {
-  // The challenger: upright, weight forward, trailing leg through.
-  const a: Pose = {
-    hip: [-0.7, 0.92, 0.08], neck: [-0.64, 1.42, 0.04], head: [-0.61, 1.6, 0.03],
-    shoulder: [[-0.81, 1.37, 0.05], [-0.47, 1.37, 0.04]],
-    elbow: [[-0.98, 1.12, 0.14], [-0.36, 1.14, -0.08]],
-    hand: [[-1.02, 0.86, 0.26], [-0.26, 0.9, -0.2]],
-    knee: [[-0.88, 0.5, -0.02], [-0.42, 0.58, 0.24]],
-    foot: [[-0.94, 0.06, -0.1], [-0.14, 0.44, 0.38]],
-  };
+  const mark = place(sphere(0.075, 1, M.signal), { pos: CONTACT_AT });
 
-  /* The one going down: hips dropping, torso rotating away, arms out. Placed
-     clearly forward in depth so the painter's sort never has to choose between
-     the two of them. */
-  const b: Pose = {
-    hip: [0.22, 0.74, 0.52], neck: [0.42, 1.18, 0.46], head: [0.51, 1.34, 0.43],
-    shoulder: [[0.28, 1.14, 0.52], [0.58, 1.16, 0.4]],
-    elbow: [[0.16, 0.88, 0.68], [0.82, 1.3, 0.36]],
-    hand: [[0.02, 0.66, 0.8], [1.02, 1.46, 0.32]],
-    knee: [[0.04, 0.34, 0.62], [0.48, 0.4, 0.44]],
-    foot: [[-0.14, 0.04, 0.54], [0.7, 0.06, 0.38]],
-  };
-
-  // The contact itself, marked where the plate says the impulse arrived.
-  const mark = place(sphere(0.075, 1, M.signal), { pos: [-0.2, 0.46, 0.4] });
-
-  return merge(person(a, M.skin), person(b, M.skin), mark);
+  /* Both figures are one material, so until now the clay stage drew them as a
+     single grey tangle. The sub-assembly split is the only thing that separates
+     them: the challenger is the body of the drawing, the one going down is what
+     the method is actually watching, and the contact is what passes between. */
+  return merge(
+    group(person(POSE_A, M.skin), P.body),
+    group(person(POSE_B, M.skin), P.works),
+    group(mark, P.subject),
+  );
 }
 
 /* ── M6 · Lantern — the bedside unit ─────────────────────────────────────── */
@@ -408,7 +494,15 @@ function lanternUnit(): Mesh {
     pos: [-0.38, -0.32, -0.12], rot: [Math.PI / 2, 0.6, 0],
   });
 
-  return merge(base, screen, key, cord);
+  /* The key is the `subject` slot rather than part of the face: it is the whole
+     of what passes between a person and this object, and giving it the brightest
+     tone is the drawing agreeing with the module's own claim. */
+  return merge(
+    group(base, P.body),
+    group(cord, P.frame),
+    group(screen, P.face),
+    group(key, P.subject),
+  );
 }
 
 /* ── M7 · ActiveDoc — the page, marked, and the card it made ─────────────── */
@@ -441,7 +535,14 @@ function pageAndCard(): Mesh {
     pos: [1.06, 0.05, 0.81], rot: [0, -0.42, 0],
   });
 
-  return merge(sheet, ...lines, mark, card, edge);
+  /* The ruled lines are the `frame` — on a page, the structure that carries the
+     meaning is the formatting, which is this project's whole premise. */
+  return merge(
+    group(sheet, P.body),
+    group(merge(...lines), P.frame),
+    group(mark, P.works),
+    group(merge(card, edge), P.subject),
+  );
 }
 
 /** The margin arrow — drawn, not modelled. */
@@ -453,6 +554,97 @@ const ARROW: V3[] = [
 
 /* ── the seven ───────────────────────────────────────────────────────────── */
 
+/* ── the process studies ─────────────────────────────────────────────────────
+ *
+ * The clay plate answers "what does it do", where the line plate answers "what
+ * shape is it" and the hero answers "what is it". Two things carry that, and
+ * neither of them is an added form:
+ *
+ *   **Assembly**, on every plate — the mesh's own `part` tags, shaded as a ramp
+ *   by the clay stage. It says how many pieces the object is and where they
+ *   divide, and it costs no ink at all. See `P` above and `PART_TONES` in
+ *   `render3d.ts`.
+ *
+ *   **Construction or dimension**, one per plate, chosen by what the object's
+ *   design problem actually was. Construction where the form follows from a
+ *   geometric decision: an optical axis, a solid of revolution, a page's grid,
+ *   the skeleton a pose model extracts. Dimension where the problem is *fit* —
+ *   something that has to go inside a body, be worn, or sit on a bedside table.
+ *
+ * What was tried and rejected, so that it is not tried again: arrows and added
+ * blocky forms, which show clutter rather than process; ghosted motion,
+ * two-state and section-cut, because process does not imply motion; and a
+ * stock-envelope study, which at 198×100 compresses its depth edges into the
+ * front face and reads as a picture frame.
+ *
+ * Everything here is authored to read in the **picture plane** — X across, Y up.
+ * The clay view is a front elevation (`yaw: 0`), so anything laid out along Z
+ * foreshortens to nothing. `plan()` is the exception, for the one object that
+ * lies flat and is therefore looked down on.
+ *
+ * Dimensions are drawn **unnumbered**, on the hardware plates as much as the
+ * software ones. These are concept forms and nobody has committed to a
+ * millimetre; a figure here would be the only invented precision on the page.
+ */
+
+/** One construction line. */
+const rule = (from: V3, to: V3, width = 0.9): Stroke => ({ points: [from, to], width });
+
+/** A closed profile in the picture plane — the rectangle a solid was made from. */
+const rect = (x0: number, x1: number, y0: number, y1: number, z = 0, width = 0.9): Stroke => ({
+  points: [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], [x0, y0, z]],
+  width,
+});
+
+/** The same, in the *page* plane (XZ) — for the one object that lies flat. */
+const plan = (x0: number, x1: number, z0: number, z1: number, y: number, width = 0.9): Stroke => ({
+  points: [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [x0, y, z0]],
+  width,
+});
+
+/**
+ * Extension lines, a dimension line between them, and terminators.
+ *
+ * `a`..`b` is the span, measured along `axis`. `at` is where the dimension line
+ * stands off on the other axis, and `ext` is where the extension lines leave the
+ * object — the two together decide how far clear of the form the whole
+ * construction sits.
+ *
+ * Terminators are 45° ticks rather than arrowheads, and that is not a stylistic
+ * choice: an arrowhead in proportion to these lines fills in to a blob at
+ * 198×100, and one big enough to hold its shape is an arrow, which is the thing
+ * this treatment exists to do without.
+ */
+function dim(axis: 'x' | 'y', a: number, b: number, at: number, ext: number, z = 0): Stroke[] {
+  // Extension lines overshoot the dimension line slightly, as drawn ones do.
+  const over = Math.sign(at - ext) * 0.06;
+  const t = 0.055;
+
+  /** `u` runs along the measured axis, `w` across it. */
+  const pt = (u: number, w: number): V3 => (axis === 'x' ? [u, w, z] : [w, u, z]);
+
+  return [
+    { points: [pt(a, ext), pt(a, at + over)], width: 0.8 },
+    { points: [pt(b, ext), pt(b, at + over)], width: 0.8 },
+    { points: [pt(a, at), pt(b, at)], width: 1.1 },
+    { points: [pt(a - t, at - t), pt(a + t, at + t)], width: 1.1 },
+    { points: [pt(b - t, at - t), pt(b + t, at + t)], width: 1.1 },
+  ];
+}
+
+/** M5 · the skeleton a pose model pulls out of the frame. */
+function skeleton(p: Pose): V3[][] {
+  const hipSide = (i: number): V3 => [p.hip[0] + (i ? 0.075 : -0.075), p.hip[1] - 0.02, p.hip[2]];
+  return [
+    [p.hip, p.neck, p.head],
+    [p.shoulder[0], p.shoulder[1]],
+    [p.shoulder[0], p.elbow[0], p.hand[0]],
+    [p.shoulder[1], p.elbow[1], p.hand[1]],
+    [hipSide(0), p.knee[0], p.foot[0]],
+    [hipSide(1), p.knee[1], p.foot[1]],
+  ];
+}
+
 export const PLATES: Record<string, Plate> = {
   vivesense: {
     n: 1,
@@ -462,6 +654,21 @@ export const PLATES: Record<string, Plate> = {
     ground: -0.05,
     shadow: 1.5,
     build: optic,
+    /* Construction. The vertical optical axis over the bay *is* this object's
+       argument — the first version laid the module on its side and it read as a
+       sled with a cannon on it. Stem, arm, head, barrel, lens and slide are all
+       coaxial in X, so one line states the whole of it. The two short rules are
+       the lens face and the slide surface: the daylight between them is what
+       makes a reader legible as a reader. */
+    clay: {
+      strokes: [
+        rule([0, -0.09, 0.2], [0, 1.09, 0.2]),
+        rule([-0.72, 0.30, 0.2], [0.72, 0.30, 0.2]),
+        rect(-0.22, 0.22, 0.62, 0.855, 0.2, 1.1),
+        rule([-0.3, 0.45, 0.2], [0.3, 0.45, 0.2]),
+        rule([-0.3, 0.365, 0.2], [0.3, 0.365, 0.2]),
+      ],
+    },
     notes: [
       { at: [0, 0.46, 0.2], text: 'OPTICAL PATH', side: 'tr' },
       { at: [0, 0.37, 0.58], text: 'SAMPLE SLIDE', side: 'bl' },
@@ -476,6 +683,16 @@ export const PLATES: Record<string, Plate> = {
     ground: -0.42,
     shadow: 1.5,
     build: implant,
+    /* Dimension. An implant's whole design problem is fitting inside a person,
+       so the two spans that were actually constrained are the overall length
+       port-to-port and the diameter of the body. Both unnumbered: this is a
+       concept form and a millimetre here would be invented. */
+    clay: {
+      strokes: [
+        ...dim('x', -1.40, 1.40, -0.62, -0.10),
+        ...dim('y', -0.40, 0.40, 1.58, 1.02),
+      ],
+    },
     notes: [
       { at: [0.12, 0.42, 0], text: 'FILTRATION STAGE', side: 'tr' },
       { at: [-1.2, -0.16, 0], text: 'VASCULAR PORT', side: 'bl' },
@@ -492,6 +709,21 @@ export const PLATES: Record<string, Plate> = {
     glow: { at: [0, 0.63, 0], r: 0.55 },
     build: sampleCell,
     strokes: [{ points: BEAM, accent: true, width: 2.2 }],
+    /* Construction. The cell really was extruded from that rectangle and the
+       barrels really were revolved about that axis, so the drawing is stating
+       its own derivation rather than decorating itself. The two short rules on
+       the right are the detector barrel's revolve extent. */
+    clay: {
+      strokes: [
+        rule([0, 0.1, 0], [0, 1.22, 0]),
+        rule([-0.95, 0.63, 0], [0.95, 0.63, 0]),
+        rule([-0.85, 0.12, 0], [0.85, 0.12, 0]),
+        rect(-0.2, 0.2, 0.3, 1.04, 0, 1.2),
+        rect(-0.16, 0.16, 0.34, 0.9),
+        rule([0.27, 0.72, 0], [0.47, 0.72, 0]),
+        rule([0.27, 0.54, 0], [0.47, 0.54, 0]),
+      ],
+    },
     notes: [
       { at: [0.04, 0.7, 0.04], text: 'PARTICULATE LOAD', side: 'tr' },
       { at: [-0.3, 0.63, 0], text: 'SOURCE AND DETECTOR', side: 'bl' },
@@ -507,6 +739,17 @@ export const PLATES: Record<string, Plate> = {
     shadow: 1.3,
     build: recorder,
     strokes: [{ points: TRACE, accent: true, width: 1.6 }],
+    /* Dimension. It is worn, so footprint and thickness are the constraint —
+       and thickness is the one that decides whether a recorder is tolerable
+       under clothing for the hours between visits. Depth is the third span and
+       it cannot be shown: the clay view is a front elevation, so the object's
+       own depth foreshortens to nothing. */
+    clay: {
+      strokes: [
+        ...dim('x', -0.525, 0.525, -0.30, -0.11),
+        ...dim('y', -0.085, 0.105, 0.78, 0.60),
+      ],
+    },
     notes: [
       { at: [0.12, 0.11, -0.04], text: 'ROLLING TRACE', side: 'tr' },
       { at: [-0.56, -0.05, 0.18], text: 'THE HOURS BETWEEN VISITS', side: 'bl' },
@@ -521,6 +764,23 @@ export const PLATES: Record<string, Plate> = {
     ground: 0,
     shadow: 1.5,
     build: contact,
+    /* Construction, and it is software, so there is no millimetre to give — the
+       skeleton and the plumb lines *are* what the method constructs. The impulse
+       arrow that used to sit here is gone: process does not imply motion, and an
+       arrow was the first thing rejected.
+       A plumb from each head to the ground, against a ground line, is exactly
+       the construction a fall check performs. It asserts no verdict — where the
+       plumb falls relative to the base of support is the question, and the
+       drawing states the question rather than answering it. */
+    clay: {
+      strokes: [
+        ...skeleton(POSE_A).map((points) => ({ points, width: 1.1 })),
+        ...skeleton(POSE_B).map((points) => ({ points, width: 1.1 })),
+        rule([-1.1, 0, 0.2], [1.1, 0, 0.2]),
+        rule([POSE_A.head[0], POSE_A.head[1], POSE_A.head[2]], [POSE_A.head[0], 0, POSE_A.head[2]]),
+        rule([POSE_B.head[0], POSE_B.head[1], POSE_B.head[2]], [POSE_B.head[0], 0, POSE_B.head[2]]),
+      ],
+    },
     notes: [
       { at: [0.08, 0.46, 0.42], text: 'POINT OF CONTACT', side: 'tr' },
       { at: [0.3, 0.66, 0.82], text: 'DEPTH IS THE CEILING', side: 'bl' },
@@ -536,6 +796,17 @@ export const PLATES: Record<string, Plate> = {
     shadow: 1.15,
     glow: { at: [0, 0.34, 0.1], r: 0.85 },
     build: lanternUnit,
+    /* Dimension. A bedside unit is constrained by the table it stands on: how
+       big the screen has to be to read from a pillow, and how far off the
+       surface it sits. The lower span runs from the table itself, which is why
+       it starts at the base's own footing rather than at the shell. */
+    clay: {
+      strokes: [
+        ...dim('x', -0.43, 0.43, 0.80, 0.71),
+        ...dim('y', 0.125, 0.615, 0.72, 0.56),
+        ...dim('y', -0.34, 0.125, 0.94, 0.56),
+      ],
+    },
     notes: [
       { at: [0.22, 0.44, 0.12], text: 'REFUSES BY DEFAULT', side: 'tr' },
       { at: [0, -0.13, 0.28], text: 'ONE TOUCH TO A HUMAN', side: 'bl' },
@@ -551,6 +822,20 @@ export const PLATES: Record<string, Plate> = {
     shadow: 1.4,
     build: pageAndCard,
     strokes: [{ points: ARROW, accent: true, width: 1.5 }],
+    /* Construction, necessarily — software, so there is no dimension to give
+       that would not be invented. A page's grid is literally what the pipeline
+       reads: the text block, the indent that marks a nested structure, and the
+       extent of the block that was lifted out of it.
+       Authored in the *page* plane rather than the picture plane. This is the
+       one object that lies flat and the one plate whose camera looks down at it
+       (pitch 0.62), so a rectangle in XZ is what projects as a rectangle. */
+    clay: {
+      strokes: [
+        plan(-0.58, 0.58, -0.46, 0.46, 0.02),
+        rule([-0.41, 0.02, -0.46], [-0.41, 0.02, 0.46]),
+        plan(-0.47, 0.31, -0.125, 0.025, 0.022, 1.1),
+      ],
+    },
     notes: [
       { at: [-0.08, 0.014, -0.05], text: 'FORMATTING IS THE MEANING', side: 'tl' },
       { at: [0.98, 0.08, 0.62], text: 'ONE CARD, GRADED', side: 'bl' },

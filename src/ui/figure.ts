@@ -17,7 +17,7 @@ import {
   grain, palette, projectPoint, renderScene, stroke3d,
   type Cam, type Palette, type Treatment,
 } from './render3d';
-import type { Mesh } from './mesh';
+import { merge, type Mesh, type V3 } from './mesh';
 
 const W = 460;
 const H = 340;
@@ -73,11 +73,23 @@ const VIEWS: View[] = [
 /** The hero — the only view that turns, and the only one carrying leaders. */
 const HERO = VIEWS[2];
 
-/** Geometry is deterministic, so build each object once per page load. */
+/**
+ * Geometry is deterministic, so build each object once per page load.
+ *
+ * Keyed by id *and* stage, because the clay stage draws a different mesh: the
+ * object plus its process study. They are merged rather than drawn separately so
+ * `fitFor` measures the pair together — framed apart, a hand reaching for a key
+ * would be sized and centred independently of the key.
+ */
 const MESHES = new Map<string, Mesh>();
-const meshFor = (id: string, plate: Plate): Mesh => {
-  let m = MESHES.get(id);
-  if (!m) { m = plate.build(); MESHES.set(id, m); }
+const meshFor = (id: string, plate: Plate, v: View): Mesh => {
+  const extra = v.treatment === 'clay' ? plate.clay?.build : undefined;
+  const key = extra ? `${id}:clay` : id;
+  let m = MESHES.get(key);
+  if (!m) {
+    m = extra ? merge(plate.build(), extra()) : plate.build();
+    MESHES.set(key, m);
+  }
   return m;
 };
 
@@ -218,15 +230,25 @@ function fitFor(id: string, plate: Plate, mesh: Mesh, v: View): Fit {
     dist: plate.cam.dist * (v.lens ?? 1),
     f: 1000, ox: 0, oy: 0,
   };
+
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const poly of mesh) {
-    for (const v of poly.v) {
-      const [sx, sy] = projectPoint(v, probe, 0, 0);
-      if (sx < x0) x0 = sx;
-      if (sx > x1) x1 = sx;
-      if (sy < y0) y0 = sy;
-      if (sy > y1) y1 = sy;
-    }
+  const bound = (p: V3) => {
+    const [sx, sy] = projectPoint(p, probe, 0, 0);
+    if (sx < x0) x0 = sx;
+    if (sx > x1) x1 = sx;
+    if (sy < y0) y0 = sy;
+    if (sy > y1) y1 = sy;
+  };
+
+  for (const poly of mesh) for (const q of poly.v) bound(q);
+
+  /* The clay stage's overlay is part of its picture, so it has to be part of
+     what the framing solves for. Measuring the mesh alone frames the object as
+     though the construction and dimension lines were not there, and a dimension
+     line stands *off* the form by design — so the extension lines ran into the
+     plate edge. */
+  if (v.treatment === 'clay') {
+    for (const s of plate.clay?.strokes ?? []) for (const q of s.points) bound(q);
   }
 
   const band = v === HERO ? BAND.hero : BAND.study;
@@ -293,12 +315,13 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
 
   if (!quick) registration(ctx, p);
 
-  const mesh = meshFor(id, plate);
-  const heroCam = () => camFor(plate, id, HERO, fitFor(id, plate, mesh, HERO));
+  const heroMesh = meshFor(id, plate, HERO);
+  const heroCam = () => camFor(plate, id, HERO, fitFor(id, plate, heroMesh, HERO));
 
   for (const v of VIEWS) {
     if (quick && v !== HERO) continue;
 
+    const mesh = meshFor(id, plate, v);
     const cam = camFor(plate, id, v, fitFor(id, plate, mesh, v));
     const treatment: Treatment = quick ? 'flat' : v.treatment;
 
@@ -330,6 +353,23 @@ function render(canvas: HTMLCanvasElement, id: string, plate: Plate, quick = fal
         stroke3d(ctx, cam, s.points, v.cx, v.cy,
           s.accent ? css(p.accent) : `rgba(${p.deep.map((n) => n | 0).join(',')}, 0.55)`,
           s.width ?? 1.4);
+      }
+    }
+
+    /* The process study's overlay — construction geometry or dimensions,
+       whichever that object's design problem asked for. Drawn in the pen rather
+       than the accent: clay says nothing about material, and an accent here
+       would be the one bit of the finished render leaking into the stage that is
+       meant to precede it. */
+    if (treatment === 'clay') {
+      /* Annotation sits under the object's own presence rather than over it.
+         FLOPCHECK is the case that sets this: a full skeleton across two figures
+         is a lot of ink, and at a heavier alpha it lifted that study's mean
+         lightness enough to close the gap on its own hero — the drawing was
+         being separated by its labels instead of by its form. */
+      for (const s of plate.clay?.strokes ?? []) {
+        stroke3d(ctx, cam, s.points, v.cx, v.cy,
+          `rgba(${p.pen.map((n) => n | 0).join(',')}, 0.58)`, s.width ?? 1.3);
       }
     }
   }

@@ -83,8 +83,16 @@ export function palette(el: Element): Palette {
   return {
     /* Pulled off the extremes at both ends: a plate that bottoms out at pure
        ink loses its form in the shadows, and one that tops out at pure paper
-       dissolves into the page. */
-    deep: mix(ink, paper, 0.06),
+       dissolves into the page.
+
+       The dark end was 0.06, which is another way of saying the darkest surface
+       an object could have was the page colour. On the board ground that is
+       near-black behind a field which renders around 0.19 luma, so every
+       shadowed face sank into the background and the objects lost their edges —
+       worst on the first three plates, where Ben saw it. At 0.20 the ramp starts
+       clear of the page, which puts a floor under the contrast of every surface
+       at every stage rather than fixing one of them. */
+    deep: mix(ink, paper, 0.20),
     pale: mix(paper, ink, 0.05),
     accent,
     /* Lifted off the page rather than set to it. `--bg` on the board ground is
@@ -172,7 +180,7 @@ export const projectPoint = (p: V3, cam: Cam, cx: number, cy: number) =>
    each object's turntable angle would make the set look unrelated. */
 const KEY: V3 = norm([-0.52, 0.74, 0.62]);
 const FILL: V3 = norm([0.68, 0.18, 0.42]);
-const AMB = 0.22;
+const AMB = 0.24;
 
 function shade(n: V3, v: V3, m: Mat, matte = false): number {
   const lam = Math.max(dot(n, KEY), 0);
@@ -205,7 +213,11 @@ function shade(n: V3, v: V3, m: Mat, matte = false): number {
      below a render that is itself nearly grey, so the finished stage moves up to
      meet it. Highlights clamp on METAL at these gains, which is what a highlight
      on polished metal should do. */
-  return AMB + 0.74 * lam + 0.22 * fil + s + rim;
+  /* Raised again with the ramp's dark end. Lifting `deep` compresses the whole
+     value range, so the same spread in *input* buys less separation in output —
+     the clay and hero stages had to move further apart in `lam` to stay as far
+     apart on screen. */
+  return AMB + 0.82 * lam + 0.22 * fil + s + rim;
 }
 
 function toneOf(value: number, m: Mat, p: Palette): RGB {
@@ -307,9 +319,55 @@ export type Treatment = 'line' | 'flat' | 'clay' | 'render';
  * "strip the materials" removed nothing anyone could see and the clay study came
  * out as the hero at half size. Measured, the two stages sat within 0.056 of each
  * other in mean lightness on all seven boards, and on four of them within 0.012.
- * A grey model is *darker* than a finished white render; at 0.52 it reads as one.
+ * A grey model is *darker* than a finished white render.
+ *
+ * It survives as the fallback for a polygon whose `part` is out of range. Every
+ * tagged polygon takes a tone off the ramp below instead.
  */
 const CLAY: Mat = { tone: 0.38, spec: 0, gloss: 1 };
+
+/**
+ * The assembly ramp — one grey per sub-assembly slot, shared by all seven plates.
+ *
+ * This is the whole of the clay stage's assembly reading, and it costs no extra
+ * ink on the drawing: the mesh already knows which piece each face belongs to
+ * (`Poly.part`), so shading by that tag says *how many pieces this is and where
+ * they divide* without a single added line.
+ *
+ * Shading by *material* instead was the obvious cheap version and it does not
+ * work. A dock, the stem above it and the optic head on the end of that are all
+ * one moulded shell, so a material-shaded study paints the three of them a single
+ * grey and the object arrives as a lump.
+ *
+ * Slot 0 is the body — the largest part on every object — and it holds the
+ * darkest tone, so the area-weighted mean stays near where the single `CLAY`
+ * body sat. That is the design, and it is what keeps `scripts/stages.mjs` from
+ * failing on a raised clay mean; scale this ramp as a whole rather than lifting
+ * `CLAY`'s floor or re-darkening the hero, both of which are already load-bearing.
+ * The ramp climbs toward the parts that do the work:
+ *
+ *   0 body · 1 frame · 2 works · 3 face · 4 subject
+ *
+ * ── Why these numbers and not the spread they were authored at ──────────────
+ * The ramp started at `[0.30, 0.40, 0.50, 0.60, 0.72]`, which is the spacing the
+ * assembly reading wants, and it failed the separation gate on two boards. The
+ * area-weighted mean was supposed to land near the single body's old 0.38 on the
+ * argument that slot 0 is the largest part everywhere — true of six objects and
+ * **not of LANTERN**, whose front elevation is very nearly all screen panel.
+ * That is `face`, near the top of the ramp, so its clay study came out at 0.458
+ * mean against a hero of 0.507: 0.049 apart, where the gate wants 0.12.
+ *
+ * Scaled down as a whole rather than by lifting `CLAY`'s floor or re-darkening
+ * the hero — both of those were tuned against measurements and are load-bearing.
+ * The scaling is exact rather than felt for: clay luma is affine in albedo, so
+ * `luma(k) = deep + (luma(1) − deep)·k`, and two measured runs fix `deep` at
+ * about 0.26. LANTERN is the binding constraint at every k, and 0.55 puts it
+ * where it sat before any of this work — around 0.14 clear, not the 0.004 that
+ * the first correction bought.
+ */
+const PART_TONES = [0.17, 0.22, 0.28, 0.33, 0.40];
+
+const CLAY_MATS: Mat[] = PART_TONES.map((tone) => ({ ...CLAY, tone }));
 
 export interface Scene {
   mesh: Mesh;
@@ -335,13 +393,16 @@ export function renderScene(
 
   if (treatment === 'line') { lineScene(ctx, scene, p, cx, cy); return; }
 
-  /* Clay swaps the whole material list for one neutral body: no accent, no
-     glass, nothing that carries meaning. Glass in particular goes solid — a
-     grey model is a solid, and a transparent one would be reporting a material
-     at the stage that is meant to be silent about material. */
+  /* Clay drops the material list entirely: no accent, no glass, nothing that
+     carries meaning. Glass in particular goes solid — a grey model is a solid,
+     and a transparent one would be reporting a material at the stage that is
+     meant to be silent about material. What it shades by instead is the
+     sub-assembly tag, which is a different question and the one this stage is
+     asking. */
   const matte = treatment === 'clay';
-  const mats = matte ? [CLAY] : scene.mats;
-  const matFor = (i: number) => (matte ? CLAY : mats[i] ?? mats[0]);
+  const { mats } = scene;
+  const matFor = (poly: Poly): Mat =>
+    matte ? CLAY_MATS[poly.part ?? 0] ?? CLAY : mats[poly.m] ?? mats[0];
 
   if (scene.shadow) contactShadow(ctx, scene, p, cx, cy);
 
@@ -357,7 +418,7 @@ export function renderScene(
     const c: V3 = [ccx * k, ccy * k, ccz * k];
 
     const fn = faceNormal({ v: view, m: poly.m } as Poly);
-    const m = matFor(poly.m);
+    const m = matFor(poly);
 
     /* A face is visible when its normal points back toward the camera. Skip
        the test for anything see-through: the whole point of glass is that the
