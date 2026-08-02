@@ -191,20 +191,33 @@
 
 .mod__id { display: block; color: var(--accent); margin-bottom: var(--s2); }
 
-/* The project's own name. It used to be a small chrome line — "M1 · ViveSense,
-   Inc." — over an editorial headline that ran under the plate, and the two said
-   the same thing twice on half the modules. The name now leads and carries the
-   heading, the plate index keeps the cross-reference to the figcaption, and the
-   line under the plate says what the object is.
-   Set exactly as the headline it replaced: it is a heading in the same slot at
-   the same rank, so it takes the same type. */
+/* The project's own name, in the mono register the plate index sets rather than
+   the display one. The name has always been instrument chrome on this page — it
+   arrived as "M1 · ViveSense, Inc." in accent mono — and setting it in the
+   display face made it and the subtitle under the plate the same face in the
+   same ink at two sizes, which is two headlines rather than a label and a line.
+   Sized against the longest name, not by eye: mono is a good deal wider than
+   Bodoni per character, and MICROPLASTIC DETECTION at 22 characters is what
+   decides the cap. Tracking is well under `.chrome`'s 0.13em, because tracking
+   is an optical correction for small text — held at that value it opens a word
+   this size into loose separate letters. */
 .mod__name {
-  font-family: var(--display);
-  font-variation-settings: 'opsz' 60;
-  font-weight: 500; font-size: var(--t-xl);
-  line-height: 1.04; letter-spacing: -0.018em;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
   margin-bottom: var(--s2);
   text-wrap: balance;
+}
+/* MICROPLASTIC DETECTION is the only name that does not fit a 360px column,
+   and it misses by about 20px — all of which is tracking. Closing it up is the
+   right correction rather than a shrink: the looser value is there to open up
+   type set large against plenty of room, and there is no room here. */
+@media (max-width: 480px) {
+  .mod__name { letter-spacing: 0.04em; }
 }
 
 /* Says what the object is, in the slot the editorial headline used to hold —
