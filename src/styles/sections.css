@@ -191,20 +191,19 @@
 
 .mod__id { display: block; color: var(--accent); margin-bottom: var(--s1); }
 
-/* The project's own name, and the largest thing in the module.
-   It used to be a small chrome line — "M1 · ViveSense, Inc." — over an
-   editorial headline that ran under the plate, and the two said the same thing
-   twice on half the modules. The name now leads and carries the heading, the
-   plate index keeps the cross-reference to the figcaption, and the line under
-   it says what the object is. */
+/* The project's own name. It used to be a small chrome line — "M1 · ViveSense,
+   Inc." — over an editorial headline that ran under the plate, and the two said
+   the same thing twice on half the modules. The name now leads and carries the
+   heading, the plate index keeps the cross-reference to the figcaption, and the
+   line under the plate says what the object is.
+   Set exactly as the headline it replaced: it is a heading in the same slot at
+   the same rank, so it takes the same type. */
 .mod__name {
   font-family: var(--display);
-  font-variation-settings: 'opsz' 72;
-  font-weight: 500;
-  font-size: var(--t-xxl);
-  line-height: 0.98;
-  letter-spacing: -0.022em;
-  margin-bottom: var(--s1);
+  font-variation-settings: 'opsz' 60;
+  font-weight: 500; font-size: var(--t-xl);
+  line-height: 1.04; letter-spacing: -0.018em;
+  margin-bottom: var(--s2);
   text-wrap: balance;
 }
 
