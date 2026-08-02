@@ -89,7 +89,7 @@ function revealStatic() {
   revealed = true;
   root.dataset.ground = 'paper';
   gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
-  gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
+  gsap.set(['.hero__role', '.hero__tag', '.hero__lede', '.chrome--cue'], { opacity: 1 });
   document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
 }
 
@@ -224,7 +224,7 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
 
     revealed = true;
     gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
-    gsap.set(['.hero__role', '.hero__lede', '.chrome--cue'], { opacity: 1 });
+    gsap.set(['.hero__role', '.hero__tag', '.hero__lede', '.chrome--cue'], { opacity: 1 });
     document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
 
     rhythm.clear();
@@ -246,7 +246,8 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     .to('.hero__given', { clipPath: 'inset(0 0% 0 0)', duration: 1.15, ease: 'power3.inOut' }, 0.45)
     .to('.hero__family', { clipPath: 'inset(0 0% 0 0)', duration: 1.25, ease: 'power3.inOut' }, 0.72)
     .to('.hero__role', { opacity: 1, duration: 0.8, ease: 'power2.out' }, 1.25)
-    .to('.hero__lede', { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 1.45)
+    .to('.hero__tag', { opacity: 1, duration: 0.85, ease: 'power2.out' }, 1.38)
+    .to('.hero__lede', { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 1.6)
     .add(() => {
       traceEl.setAttribute('data-on', '');
       rail?.setAttribute('data-on', '');

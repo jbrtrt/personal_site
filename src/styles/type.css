@@ -94,6 +94,24 @@
   opacity: 0;
 }
 
+/* The tagline sits between the mono role line and the lede, and it is set in
+   the display face so the three read as three different registers rather than
+   as one paragraph broken in thirds. Deliberately well below `--t-xxl`: it is a
+   subordinate line under a name set at up to 12.5rem, and at section-heading
+   size it competes with the name instead of introducing it. */
+.hero__tag {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 48;
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  max-width: 22rem;
+  margin-bottom: var(--s3);
+  text-wrap: balance;
+  opacity: 0;
+}
+
 .hero__lede {
   font-size: var(--t-lg);
   line-height: 1.42;
@@ -117,11 +135,13 @@
      the --t-hero override further down, because it sets font-size directly. */
   .hero__name { font-size: clamp(2.6rem, min(9.5vh, 13.5vw), 7rem); margin-bottom: var(--s2); }
   .hero__role { margin-bottom: var(--s3); }
+  .hero__tag { font-size: var(--t-lg); margin-bottom: var(--s2); }
   .hero__lede { font-size: var(--t-md); }
   .chrome--top { margin-bottom: var(--s2); }
 }
 @media (max-height: 740px) {
   .hero__lede { font-size: var(--t-base, 1rem); max-width: 26rem; }
+  .hero__tag { font-size: var(--t-md); }
   .hero__name { font-size: clamp(2.2rem, min(8.5vh, 13vw), 5rem); }
 }
 
@@ -145,4 +165,9 @@
 @media (max-width: 720px) {
   :root { --t-hero: clamp(2.9rem, 17vw, 5rem); }
   .hero__lede { font-size: var(--t-md); }
+  /* Three terms at 0.42em is about 425px of tracked mono, so on a phone it fell
+     to three lines — one word each, stacked above a name set at 17vw. Easing the
+     tracking is what buys the second term a place on the first line; it holds
+     two lines at both 390 and 360, which is the shape a phone can carry. */
+  .hero__role { letter-spacing: 0.28em; }
 }
