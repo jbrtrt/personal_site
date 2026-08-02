@@ -443,7 +443,13 @@
 
 /* ═══════════ 06 · CONTACT ══════════════════════════════════ */
 .sec--contact { padding-block: var(--s8); }
-.contact__h { font-size: var(--t-xxl); margin-bottom: var(--s5); }
+/* Not `--t-xxl` like the other section headings. This one is hand-broken with
+   `<br>`, and the closing line grew from "Say so." to a full sentence — at
+   5.6rem every one of its four chunks wrapped again inside itself, so the
+   heading ran to six lines and pushed the email and LinkedIn buttons off the
+   bottom of a 900px viewport. Capped so the longest chunk holds one line at
+   `wrap--narrow`; the vw term still lets it scale down on a phone. */
+.contact__h { font-size: clamp(1.75rem, 4.8vw, 3.7rem); margin-bottom: var(--s5); }
 
 .contact__row { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .contact__btn {
