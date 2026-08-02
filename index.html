@@ -386,11 +386,36 @@
 </main>
 
 <footer class="foot">
-  <p class="chrome">
-    <span>&copy; <span data-year>2026</span> Benjamin Greenfield</span>
-    <span class="foot__sep" aria-hidden="true">&mdash;</span>
-    <span>The background is a Barkley excitable medium solved on the GPU, and the current you see is that simulation running through the routing. The strip&rsquo;s morphology is synthesized rather than derived &mdash; a flat sheet cannot produce it &mdash; but every complex on it is one the simulation actually fired.</span>
-  </p>
+  <div class="foot__inner">
+    <p class="foot__meta chrome">
+      <span>&copy; <span data-year>2026</span> Benjamin Greenfield</span>
+      <span class="foot__sep" aria-hidden="true">&mdash;</span>
+      <span>Colophon</span>
+    </p>
+
+    <p class="foot__note">The background is Barkley&rsquo;s excitable medium: two coupled
+      equations stepped in WebGL every frame. <b>u</b> is the depolarization front,
+      <b>v</b> the recovery behind it, and that lag alone is why two wavefronts
+      annihilate where they meet instead of crossing. Clicking drives the tissue to
+      threshold. Tracing a slow circle puts a second stimulus into the first wave&rsquo;s
+      refractory tail, breaking the front so it curls &mdash; which is how re-entry is
+      induced in an electrophysiology lab, and what an arrhythmia physically is.</p>
+
+    <p class="foot__note">The strip along the bottom is not a readout of that sheet. A
+      flat one has no atria, no AV node and no His&ndash;Purkinje system, so P, PR, QRS
+      and T have no mechanism to exist in it; the morphology is synthesized as a sum of
+      Gaussians, and its intervals &mdash; P&nbsp;92, PR&nbsp;155, QRS&nbsp;85,
+      QT&nbsp;383&nbsp;ms &mdash; are measured out of the waveform on every build rather
+      than asserted. What the two share is a clock, not arithmetic: the pacemaker
+      stimulates the tissue and schedules the beat, and so does every click, as an
+      ectopic that captures only if it falls outside the 300&nbsp;ms refractory period.
+      The sinus node is never reset by one, which is why a late ectopic is followed by a
+      compensatory pause and an early one is interpolated.</p>
+
+    <p class="foot__note">None of it is load-bearing. With reduced motion the medium
+      settles to a still frame; with no WebGL at all it is not there, and what is left is
+      the document everything else was built on top of.</p>
+  </div>
 </footer>
 
 <script type="module" src="/src/main.ts"></script>
