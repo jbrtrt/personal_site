@@ -168,21 +168,6 @@
   color: var(--fg-soft);
 }
 
-.gap__leads {
-  display: flex; justify-content: center; align-items: center;
-  gap: var(--s3); flex-wrap: wrap;
-  margin: var(--s6) 0 var(--s3);
-  font: 500 var(--t-chrome)/1 var(--mono);
-  letter-spacing: 0.22em;
-}
-.gap__lead { color: var(--fg-faint); }
-.gap__lock {
-  padding: 0.4em 0.8em;
-  border: 1px solid var(--rule);
-  color: var(--fg-faint);
-  transition: color var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
-}
-.gap__lock[data-locked] { color: var(--signal); border-color: var(--signal); }
 .gap__foot { color: var(--fg-faint); font-size: var(--t-sm); }
 
 /* ═══════════ 03 · BUILDS — modules on a board ═══════════════ */
@@ -204,30 +189,38 @@
   .mod:nth-child(even) > * { margin-left: 0; text-align: left; }
 }
 
-.mod__id { display: block; color: var(--accent); margin-bottom: var(--s2); }
-/* Every module opens on the belief it is evidence for. The page argues a
-   position and then shows its working, rather than listing artefacts. */
-.mod__belief {
+.mod__id { display: block; color: var(--accent); margin-bottom: var(--s1); }
+
+/* The project's own name, and the largest thing in the module.
+   It used to be a small chrome line — "M1 · ViveSense, Inc." — over an
+   editorial headline that ran under the plate, and the two said the same thing
+   twice on half the modules. The name now leads and carries the heading, the
+   plate index keeps the cross-reference to the figcaption, and the line under
+   it says what the object is. */
+.mod__name {
   font-family: var(--display);
-  font-variation-settings: 'opsz' 40;
+  font-variation-settings: 'opsz' 72;
   font-weight: 500;
+  font-size: var(--t-xxl);
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+  margin-bottom: var(--s1);
+  text-wrap: balance;
+}
+
+/* Subtitle to the name, not a display line of its own. It sat at `--t-lg` in
+   the display face when it was the module's opening statement; directly under
+   a title at `--t-xxl` that reads as two headlines fighting, so it drops to
+   the body face and the softer ink. */
+.mod__belief {
   font-size: var(--t-lg);
-  line-height: 1.18;
-  letter-spacing: -0.012em;
+  line-height: 1.25;
+  color: var(--fg-soft);
   margin-bottom: var(--s2);
   max-width: 30rem;
   text-wrap: balance;
 }
 .mod:nth-child(even) .mod__belief { margin-left: auto; }
-
-.mod__name {
-  font-family: var(--display);
-  font-variation-settings: 'opsz' 60;
-  font-weight: 500; font-size: var(--t-xl);
-  line-height: 1.04; letter-spacing: -0.018em;
-  margin-bottom: var(--s2);
-  text-wrap: balance;
-}
 .mod__body { color: var(--fg-soft); text-wrap: pretty; }
 .mod__meta { display: block; margin-top: var(--s2); color: var(--fg-faint); }
 
@@ -405,41 +398,48 @@
   .pub__v { grid-column: 2; text-align: left; }
 }
 
-/* ═══════════ 05 · OFF THE RECORD ═══════════════════════════ */
-.honors {
+/* ═══════════ 05 · THE LEDGER ═══════════════════════════════ */
+
+/* Three runs of the same shape: a mono label, then the entries separated by
+   middots. It was a dated `dl` for leadership and a single prose line for
+   honours, which made two things that are the same kind of list look like two
+   different kinds of thing. */
+.ledger__group {
   max-width: 52rem;
+  margin-bottom: var(--s4);
   color: var(--fg-soft);
   font-size: var(--t-sm);
   line-height: 1.75;
+  text-wrap: pretty;
 }
-.honors .chrome { display: block; margin-bottom: var(--s1); color: var(--accent); }
+.ledger__group .chrome { display: block; margin-bottom: var(--s1); color: var(--accent); }
 
-.egg-cue {
-  margin-top: var(--s6);
+.ledger__reveal { margin-top: var(--s5); border-top: 1px dashed var(--rule); }
+.ledger__toggle {
+  display: flex; align-items: center; gap: var(--s2);
   padding: var(--s2) 0;
-  border-top: 1px dashed var(--rule);
   color: var(--fg-faint);
-  transition: color var(--dur) var(--ease-out);
+  cursor: pointer;
+  list-style: none;                 /* Firefox draws its own marker otherwise */
+  transition: color var(--dur-fast) var(--ease-out);
 }
-.egg-cue[data-close] { color: var(--signal); }
-
-.egg {
-  margin-top: var(--s3);
-  padding: var(--s3);
-  border: 1px solid var(--signal);
-  background: color-mix(in srgb, var(--signal) 6%, transparent);
+.ledger__toggle::-webkit-details-marker { display: none; }
+.ledger__toggle:hover { color: var(--accent); }
+/* A drawn mark rather than the glyph "+", so the open state is a rotation of
+   the same object instead of a swap to a different character. */
+.ledger__mark {
+  position: relative;
+  width: 0.7em; height: 0.7em;
+  flex: none;
+  transition: transform var(--dur) var(--ease-out);
 }
-.egg__head { display: block; color: var(--signal); margin-bottom: var(--s2); }
-.egg__list { display: grid; gap: var(--s1); }
-.egg__list li {
-  display: grid;
-  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
-  gap: var(--s2);
-  font-size: var(--t-sm);
+.ledger__mark::before, .ledger__mark::after {
+  content: ''; position: absolute; inset: 50% 0 auto;
+  border-top: 1px solid currentColor;
 }
-.egg__list span { font-weight: 600; }
-.egg__list em { font-style: normal; color: var(--fg-faint); }
-@media (max-width: 640px) { .egg__list li { grid-template-columns: 1fr; gap: 0; } }
+.ledger__mark::after { transform: rotate(90deg); }
+.ledger__reveal[open] .ledger__mark { transform: rotate(45deg); }
+.ledger__group--egg { margin-top: var(--s2); }
 
 /* ═══════════ 06 · CONTACT ══════════════════════════════════ */
 .sec--contact { padding-block: var(--s8); }

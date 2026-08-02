@@ -89,7 +89,7 @@ function revealStatic() {
   revealed = true;
   root.dataset.ground = 'paper';
   gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
-  gsap.set(['.hero__role', '.hero__tag', '.hero__lede', '.chrome--cue'], { opacity: 1 });
+  gsap.set(['.hero__tag', '.hero__lede', '.chrome--cue'], { opacity: 1 });
   document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
 }
 
@@ -98,7 +98,6 @@ if (cap.tier === 'fallback' || !fieldCanvas || !traceCanvas) {
   fieldCanvas?.remove();
   traceCanvas?.remove();
   revealStatic();
-  document.querySelector('[data-egg]')?.removeAttribute('hidden');
 } else {
   void boot(fieldCanvas, traceCanvas);
 }
@@ -138,15 +137,12 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
      moment you let go. */
   pointer.onStimulus((at) => rhythm.schedule('pvc', at));
 
+  /* A traced circle still induces a re-entrant spiral in the medium — that is
+     the simulation, and the footer says so. It no longer unlocks anything: the
+     off-the-record entries are behind a button in the ledger now, because a
+     reveal nobody finds is a reveal nobody reads. */
   pointer.onReentry((x, y) => {
     field.induceReentry(x, y, (s) => pointer.queue.push(s));
-    const egg = document.querySelector<HTMLElement>('[data-egg]');
-    const cue = document.querySelector<HTMLElement>('[data-egg-cue]');
-    if (egg?.hasAttribute('hidden')) {
-      egg.removeAttribute('hidden');
-      gsap.from(egg, { opacity: 0, y: 12, duration: 0.7, ease: 'power3.out' });
-      if (cue) cue.textContent = 'The wave has found its own tail. It will keep going now.';
-    }
   });
 
   /* ── smooth scroll ────────────────────────────────────────── */
@@ -224,7 +220,7 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
 
     revealed = true;
     gsap.set(['.hero__given', '.hero__family'], { clipPath: 'inset(0 0% 0 0)' });
-    gsap.set(['.hero__role', '.hero__tag', '.hero__lede', '.chrome--cue'], { opacity: 1 });
+    gsap.set(['.hero__tag', '.hero__lede', '.chrome--cue'], { opacity: 1 });
     document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
 
     rhythm.clear();
@@ -245,8 +241,7 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
     }, 0.35)
     .to('.hero__given', { clipPath: 'inset(0 0% 0 0)', duration: 1.15, ease: 'power3.inOut' }, 0.45)
     .to('.hero__family', { clipPath: 'inset(0 0% 0 0)', duration: 1.25, ease: 'power3.inOut' }, 0.72)
-    .to('.hero__role', { opacity: 1, duration: 0.8, ease: 'power2.out' }, 1.25)
-    .to('.hero__tag', { opacity: 1, duration: 0.85, ease: 'power2.out' }, 1.38)
+    .to('.hero__tag', { opacity: 1, duration: 0.85, ease: 'power2.out' }, 1.25)
     .to('.hero__lede', { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 1.6)
     .add(() => {
       traceEl.setAttribute('data-on', '');
@@ -275,11 +270,6 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
       // Flip the ink before the ground finishes darkening, so text is
       // already light by the time the blackout arrives.
       root.dataset.ground = self.progress > INK_FLIP ? 'board' : 'paper';
-      const lock = document.querySelector<HTMLElement>('[data-lock]');
-      if (lock) {
-        if (self.progress > 0.85) { lock.dataset.locked = '1'; lock.textContent = 'PHASE LOCKED'; }
-        else { delete lock.dataset.locked; lock.textContent = 'OUT OF PHASE'; }
-      }
     },
   });
 

@@ -126,9 +126,16 @@ main { position: relative; z-index: var(--z-content); }
 .wrap { width: 100%; max-width: 78rem; margin-inline: auto; padding-inline: var(--gutter); }
 .wrap--narrow { max-width: 52rem; }
 
+/* The strip chart is `position: fixed` to the bottom of the viewport, so at the
+   very end of the document the footer sits underneath it and the copyright line
+   reads through the waveform. `z-index` does not help — the two are in the same
+   place, whichever draws on top. The document has to end above where the strip
+   begins, which means reserving exactly the strip's own height: the same
+   `clamp` that sizes `#trace`, plus a gap. The hero already does this at the
+   other end of the page with `calc(22vh + var(--s4))`. */
 .foot {
   position: relative; z-index: var(--z-content);
-  padding: var(--s5) 0 var(--s4);
+  padding: var(--s5) 0 calc(clamp(130px, 22vh, 190px) + var(--s3));
   border-top: 1px solid var(--rule);
 }
 .foot p {
