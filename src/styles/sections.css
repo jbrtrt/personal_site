@@ -208,16 +208,17 @@
   text-wrap: balance;
 }
 
-/* Subtitle to the name, not a display line of its own. It sat at `--t-lg` in
-   the display face when it was the module's opening statement; directly under
-   a title at `--t-xxl` that reads as two headlines fighting, so it drops to
-   the body face and the softer ink. */
+/* Says what the object is, in the slot the editorial headline used to hold —
+   under the plate, leading the body. The name and the plate come first, so by
+   the time this is read the reader has already seen the thing; it is a caption
+   to the object rather than a second headline, which is why it is set in the
+   body face rather than the display one. */
 .mod__belief {
   font-size: var(--t-lg);
   line-height: 1.25;
   color: var(--fg-soft);
   margin-bottom: var(--s2);
-  max-width: 30rem;
+  max-width: 34rem;
   text-wrap: balance;
 }
 .mod:nth-child(even) .mod__belief { margin-left: auto; }
