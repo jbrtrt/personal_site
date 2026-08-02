@@ -220,10 +220,14 @@
   line-height: 1.18;
   letter-spacing: -0.012em;
   margin-bottom: var(--s2);
-  max-width: 30rem;
+  /* Was 30rem, which is right for a line standing on its own above the plate.
+     Directly above the body it is wrong: the two are one block of text and a
+     narrower measure gives them different edges — ACTIVEDOC's subtitle broke to
+     two lines while the body under it ran a full 40rem on one. Same measure as
+     `.mod > *`, so subtitle and body wrap to the same rag. */
+  max-width: 40rem;
   text-wrap: balance;
 }
-.mod:nth-child(even) .mod__belief { margin-left: auto; }
 .mod__body { color: var(--fg-soft); text-wrap: pretty; }
 .mod__meta { display: block; margin-top: var(--s2); color: var(--fg-faint); }
 
