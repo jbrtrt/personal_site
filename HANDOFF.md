@@ -32,9 +32,7 @@ npm run preview      # production bundle on :4173
 ```
 
 Live: **https://jbrtrt.github.io/personal_site/**
-Repo is public. Branch `claude/professional-portfolio-site-6x2q4u` is the
-**default branch** — the repo had no commits when this started, so there is no
-`main` and no PR to open (a PR from the default branch into itself is rejected).
+Repo is public. `main` is the **default branch**.
 
 Deploy is `.github/workflows/deploy.yml` on push. Node 22.
 
