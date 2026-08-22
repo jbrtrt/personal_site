@@ -83,6 +83,9 @@ const rateEl = document.querySelector<HTMLElement>('[data-rate]');
  * transparent, so anything that leaves `boot` unfinished would otherwise leave
  * a reader looking at an empty screen.
  */
+/* 60/min — the rate the calm tier composes its strip at. */
+const SINUS_MS = 1000;
+
 let revealed = false;
 function revealStatic() {
   if (revealed) return;
@@ -93,11 +96,83 @@ function revealStatic() {
   document.querySelectorAll('.bio__p').forEach((b) => b.setAttribute('data-active', '1'));
 }
 
+/**
+ * The instrument, without the tissue.
+ *
+ * The strip is a 2D canvas and the stimulus path is `pointerdown` — neither
+ * owes anything to WebGL, so losing the GL context is no reason to lose them.
+ * Removing the strip alongside the field is what left the rail reporting a
+ * rate nothing was measuring and the cue inviting a click that could not land.
+ *
+ * What is genuinely gone is the excitable medium, and with it the sinus node:
+ * pacing came from `field.onPace`. A wall-clock interval stands in for it at
+ * the same 60/min the calm tier composes at, so the strip a fallback reader
+ * watches is the rhythm every other reader gets, just without the tissue
+ * drawing it.
+ */
+function bootStatic(traceEl: HTMLCanvasElement) {
+  const rhythm = new Rhythm();
+  const trace = new Trace(traceEl, rhythm);
+  const now = performance.now();
+
+  trace.board = 0;
+
+  /* Open mid-rhythm rather than on an empty strip — a reader arriving to a
+     flat line reads it as broken, not as waiting. */
+  for (let i = 12; i >= 0; i--) rhythm.schedule('sinus', now - i * SINUS_MS);
+  trace.compose(now, 12);
+  trace.draw();
+  traceEl.setAttribute('data-on', '');
+  /* The rail comes up here rather than in revealStatic(), because it is only
+     ever true alongside a running strip: LEAD II names the lead this trace is
+     drawn from and the readout is that trace's own rate. Revealed on the way
+     out of a failure instead, it would be chrome describing an instrument that
+     is not on the page. */
+  rail?.setAttribute('data-on', '');
+  if (rateEl) rateEl.textContent = `${rhythm.rate(now)} bpm`;
+
+  /* Reduced motion gets that composed strip and stops there: a paper speed is
+     motion, and the whole point of the setting is not to run it. */
+  if (cap.reducedMotion) return;
+
+  const pointer = new Pointer();
+  pointer.onStimulus((at) => rhythm.schedule('pvc', at));
+
+  let paced = now;
+  let running = true;
+
+  const frame = (t: number) => {
+    if (running) {
+      /* Catch-up is bounded. A backgrounded tab returns with an arbitrary gap,
+         and paying it back beat by beat would fire a burst of complexes that
+         never happened. */
+      if (t - paced > SINUS_MS * 4) paced = t;
+      while (t - paced >= SINUS_MS) {
+        paced += SINUS_MS;
+        rhythm.schedule('sinus', paced);
+      }
+      trace.advance(t);
+      trace.draw();
+      if (rateEl) rateEl.textContent = trace.bpm ? `${trace.bpm} bpm` : '—— bpm';
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    paced = performance.now();
+  });
+
+  window.addEventListener('resize', () => { trace.resize(); trace.draw(); });
+}
+
 /* ── no WebGL: the document still has to work ───────────────── */
 if (cap.tier === 'fallback' || !fieldCanvas || !traceCanvas) {
   fieldCanvas?.remove();
-  traceCanvas?.remove();
+  root.dataset.field = 'off';
   revealStatic();
+  if (traceCanvas) bootStatic(traceCanvas);
 } else {
   void boot(fieldCanvas, traceCanvas);
 }
@@ -112,9 +187,14 @@ async function boot(fieldEl: HTMLCanvasElement, traceEl: HTMLCanvasElement) {
   try {
     ({ Field } = await import('./webgl/field/Field'));
   } catch {
+    /* The chunk never arrived. That is indistinguishable from having no WebGL
+       as far as the page is concerned, so it degrades the same way rather than
+       leaving the strip and the rail behind as evidence of a failure. */
     window.clearTimeout(safety);
     fieldEl.remove();
+    root.dataset.field = 'off';
     revealStatic();
+    bootStatic(traceEl);
     return;
   }
   window.clearTimeout(safety);
