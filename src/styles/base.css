@@ -178,11 +178,15 @@ main { position: relative; z-index: var(--z-content); }
    This lays the same ruling down in CSS for that tier only. The pitch is the
    shader's: 1 mm is 9 px, 6.5 px under 640, matching `uMM` in Field.ts and
    `this.mm` in Trace.ts, so the strip and the paper it rides on agree. The
-   weights are the shader's too — it mixes toward GRID_MIN at 0.085 and
+   Keyed on the field being off rather than on the tier, because a full-tier
+   reader whose simulation chunk fails to arrive lands on exactly this page and
+   needs exactly this paper.
+
+   The weights are the shader's too — it mixes toward GRID_MIN at 0.085 and
    GRID_MAJ at 0.30, which is a good deal lighter than the --grid-* tokens
    suggest; taken at face value the ruling beats the prose. Majors are listed
    first because the earlier background-image paints on top. */
-:root[data-tier='fallback'] body::before {
+:root[data-field='off'] body::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -200,5 +204,5 @@ main { position: relative; z-index: var(--z-content); }
 }
 
 @media (max-width: 640px) {
-  :root[data-tier='fallback'] body::before { --mm: 6.5px; }
+  :root[data-field='off'] body::before { --mm: 6.5px; }
 }
