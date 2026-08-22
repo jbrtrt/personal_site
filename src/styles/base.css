@@ -167,3 +167,38 @@ main { position: relative; z-index: var(--z-content); }
   }
   #trace { opacity: 1; }
 }
+
+/* ── the ruled ground, without WebGL ──────────────────────────
+   The full tier paints the chart paper in `render.frag.glsl` — the 1 mm minor
+   and 5 mm major ruling are mixed into the fragment, not drawn by CSS. So a
+   reader with no GL context got no paper at all, only flat cream, and the
+   instrument chrome above it was left describing an instrument that was not
+   there.
+
+   This lays the same ruling down in CSS for that tier only. The pitch is the
+   shader's: 1 mm is 9 px, 6.5 px under 640, matching `uMM` in Field.ts and
+   `this.mm` in Trace.ts, so the strip and the paper it rides on agree. The
+   weights are the shader's too — it mixes toward GRID_MIN at 0.085 and
+   GRID_MAJ at 0.30, which is a good deal lighter than the --grid-* tokens
+   suggest; taken at face value the ruling beats the prose. Majors are listed
+   first because the earlier background-image paints on top. */
+:root[data-tier='fallback'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-field);
+  pointer-events: none;
+  --mm: 9px;
+  --maj: calc(var(--mm) * 5);
+  --rule-minor: rgba(196, 84, 62, 0.085);
+  --rule-major: rgba(196, 84, 62, 0.24);
+  background-image:
+    repeating-linear-gradient(to right,  var(--rule-major) 0 1px, transparent 1px var(--maj)),
+    repeating-linear-gradient(to bottom, var(--rule-major) 0 1px, transparent 1px var(--maj)),
+    repeating-linear-gradient(to right,  var(--rule-minor) 0 1px, transparent 1px var(--mm)),
+    repeating-linear-gradient(to bottom, var(--rule-minor) 0 1px, transparent 1px var(--mm));
+}
+
+@media (max-width: 640px) {
+  :root[data-tier='fallback'] body::before { --mm: 6.5px; }
+}
