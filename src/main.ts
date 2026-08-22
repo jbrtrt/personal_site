@@ -123,6 +123,12 @@ function bootStatic(traceEl: HTMLCanvasElement) {
   trace.compose(now, 12);
   trace.draw();
   traceEl.setAttribute('data-on', '');
+  /* The rail comes up here rather than in revealStatic(), because it is only
+     ever true alongside a running strip: LEAD II names the lead this trace is
+     drawn from and the readout is that trace's own rate. Revealed on the way
+     out of a failure instead, it would be chrome describing an instrument that
+     is not on the page. */
+  rail?.setAttribute('data-on', '');
   if (rateEl) rateEl.textContent = `${rhythm.rate(now)} bpm`;
 
   /* Reduced motion gets that composed strip and stops there: a paper speed is
